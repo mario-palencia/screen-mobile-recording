@@ -22,6 +22,10 @@ let cleanupTimeout;
 let gifRecordRequested = false;
 let gifMaxWidth = 400;
 let gifFps = 5;
+let gifFrames = [];
+let gifFrameInterval = null;
+let gifCanvasWidth = 0;
+let gifCanvasHeight = 0;
 
 async function startRecording(data) {
   // Cancel any pending cleanup from previous session
@@ -343,6 +347,32 @@ async function startRecording(data) {
     
     canvasStream = processCanvas.captureStream(30);
     
+    // --- GIF Frame Capture Setup ---
+    gifFrames = [];
+    if (gifRecordRequested) {
+      const srcW = processCanvas.width;
+      const srcH = processCanvas.height;
+      gifCanvasWidth = Math.min(gifMaxWidth, srcW);
+      gifCanvasHeight = Math.round(gifCanvasWidth * srcH / srcW);
+      gifCanvasWidth = (gifCanvasWidth + 1) & ~1;
+      gifCanvasHeight = (gifCanvasHeight + 1) & ~1;
+      
+      const gifCanvas = document.createElement('canvas');
+      gifCanvas.width = gifCanvasWidth;
+      gifCanvas.height = gifCanvasHeight;
+      const gifCtx = gifCanvas.getContext('2d', { willReadFrequently: true });
+      
+      const captureGifFrame = () => {
+        gifCtx.drawImage(processCanvas, 0, 0, gifCanvasWidth, gifCanvasHeight);
+        const imageData = gifCtx.getImageData(0, 0, gifCanvasWidth, gifCanvasHeight);
+        gifFrames.push(new Uint8Array(imageData.data));
+      };
+      
+      captureGifFrame();
+      gifFrameInterval = setInterval(captureGifFrame, Math.round(1000 / gifFps));
+      console.log('GIF frame capture started:', gifCanvasWidth, 'x', gifCanvasHeight, '@', gifFps, 'fps');
+    }
+    
     // --- Recorder Setup ---
     recorders = [];
 
@@ -387,68 +417,31 @@ async function startRecording(data) {
   }
 }
 
-async function convertToGif(videoBlob) {
-  console.log('convertToGif called, blob size:', videoBlob.size);
+async function convertToGif(frames) {
+  console.log('convertToGif called with', frames.length, 'frames');
   const statusDiv = document.getElementById('status');
   try {
     if (statusDiv) statusDiv.textContent = 'Converting to GIF...';
-    const url = URL.createObjectURL(videoBlob);
-    const video = document.createElement('video');
-    video.muted = true;
-    video.playsInline = true;
-    video.setAttribute('playsinline', '');
-    video.src = url;
-    video.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;pointer-events:none';
-    if (document.body) document.body.appendChild(video);
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Video failed to load'));
-    });
-    const duration = video.duration;
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    if (!vw || !vh || duration <= 0) {
-      if (document.body && video.parentNode) document.body.removeChild(video);
-      URL.revokeObjectURL(url);
-      throw new Error('Invalid video dimensions or duration');
+    if (!frames || frames.length === 0) {
+      throw new Error('No frames captured for GIF');
     }
-    video.play().catch(() => {});
-    await new Promise((r) => setTimeout(r, 150));
-    video.pause();
-    let cw = Math.min(gifMaxWidth, vw);
-    let ch = Math.round(cw * vh / vw);
-    cw = (cw + 1) & ~1;
-    ch = (ch + 1) & ~1;
-    const canvas = document.createElement('canvas');
-    canvas.width = cw;
-    canvas.height = ch;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!window.gifenc) {
       throw new Error('gifenc library not loaded');
     }
-    console.log('gifenc loaded successfully');
+    console.log('gifenc loaded, processing', frames.length, 'frames at', gifCanvasWidth, 'x', gifCanvasHeight);
     const { GIFEncoder, quantize, applyPalette } = window.gifenc;
     const gif = GIFEncoder();
     const delayMs = Math.round(1000 / gifFps);
     let palette = null;
-    const frameCount = Math.max(1, Math.floor(duration * gifFps));
-    for (let i = 0; i < frameCount; i++) {
-      const t = Math.min(i / gifFps, duration - 0.001);
-      video.currentTime = t;
-      await new Promise((r) => { video.onseeked = r; });
-      await new Promise((r) => setTimeout(r, 60));
-      ctx.drawImage(video, 0, 0, cw, ch);
-      const imageData = ctx.getImageData(0, 0, cw, ch);
-      const data = imageData.data;
+    for (let i = 0; i < frames.length; i++) {
+      const data = frames[i];
       if (!palette) {
         palette = quantize(data, 256);
       }
       const index = applyPalette(data, palette);
-      gif.writeFrame(index, cw, ch, { palette, delay: delayMs });
+      gif.writeFrame(index, gifCanvasWidth, gifCanvasHeight, { palette, delay: delayMs });
     }
     gif.finish();
-    if (document.body && video.parentNode) document.body.removeChild(video);
-    URL.revokeObjectURL(url);
     const bytes = gif.bytes();
     const gifBlob = new Blob([bytes], { type: 'image/gif' });
     const gifUrl = URL.createObjectURL(gifBlob);
@@ -511,12 +504,13 @@ function createAndStartRecorder(stream, mimeType, extension) {
       // Cleanup this specific URL later
       setTimeout(() => URL.revokeObjectURL(url), 10000);
 
-      // Convert to GIF once (use first recorder that stops, prefer MP4 for decoding)
-      console.log('Checking gifRecordRequested:', gifRecordRequested);
-      if (gifRecordRequested) {
-        gifRecordRequested = false;
-        console.log('Starting GIF conversion...');
-        convertToGif(blob).catch((err) => {
+      // Convert to GIF once (use captured frames from gifFrames array)
+      console.log('Checking gifFrames.length:', gifFrames.length);
+      if (gifFrames.length > 0) {
+        console.log('Starting GIF conversion with', gifFrames.length, 'frames...');
+        const framesToConvert = gifFrames.slice();
+        gifFrames = [];
+        convertToGif(framesToConvert).catch((err) => {
           console.error('GIF conversion failed:', err);
           chrome.runtime.sendMessage({ type: 'GIF_CONVERSION_ERROR', error: err.message });
         });
@@ -535,6 +529,12 @@ function createAndStartRecorder(stream, mimeType, extension) {
 }
 
 function stopRecording() {
+  if (gifFrameInterval) {
+    clearInterval(gifFrameInterval);
+    gifFrameInterval = null;
+    console.log('GIF frame capture stopped, total frames:', gifFrames.length);
+  }
+  
   if (recorders.length > 0) {
     recorders.forEach(recorder => {
       if (recorder.state !== 'inactive') {

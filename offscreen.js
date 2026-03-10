@@ -68,8 +68,8 @@ async function startRecording(data) {
     const colorCtx = colorCanvas.getContext('2d', { willReadFrequently: true });
     
     // Abstracted Draw Logic to handle both Video and Image sources
+    // NEW APPROACH: Frame adapts to captured content, not the other way around
     const renderFrame = (source) => {
-      // Logic adapted from original draw function
       if (!source) return;
       
       // Safety check for dimensions
@@ -77,80 +77,66 @@ async function startRecording(data) {
       let sourceHeight = 0;
       
       if (source instanceof HTMLVideoElement) {
-        if (source.readyState < 2) return; // Wait for metadata at least
+        if (source.readyState < 2) return;
         sourceWidth = source.videoWidth;
         sourceHeight = source.videoHeight;
       } else {
-         return;
+        return;
       }
 
       if (!sourceWidth || !sourceHeight) return;
       
-      // Calculate crop area based on aspect ratio matching
-      // The source includes DevTools UI (toolbar at top)
-      // We need to exclude that and crop to match the mobile viewport proportions
-      const scale = dpr;
-      const screenW = screenLogicalW * scale;
-      const screenH = screenLogicalH * scale;
-      const statusBarH = 44 * scale;  // iOS standard status bar height
+      // === NEW APPROACH: Use captured content dimensions directly ===
+      // Exclude DevTools UI from the source
+      const devToolsTopBar = 75;    // pixels to skip at top (DevTools toolbar)
+      const devToolsBottomBar = 50; // pixels to skip at bottom
       
-      // Estimate DevTools UI to exclude (minimal values to capture more content)
-      const devToolsTopBar = 50;   // pixels to skip at top
-      const devToolsBottomBar = 40;  // pixels to skip at bottom
+      // The "content" area we actually want to capture
+      const contentW = sourceWidth;  // Use full width
+      const contentH = sourceHeight - devToolsTopBar - devToolsBottomBar;
+      const contentStartX = 0;
+      const contentStartY = devToolsTopBar;
       
-      // Effective source area (excluding DevTools UI)
-      const effectiveSourceH = sourceHeight - devToolsTopBar - devToolsBottomBar;
-      const effectiveSourceY = devToolsTopBar;
+      // Frame dimensions adapt to content
+      const statusBarH = 44;  // iOS status bar height in pixels
+      const bezelPx = showFrame ? 20 : 0;
+      const radiusPx = showFrame ? 45 : 0;
       
-      // Calculate the destination aspect ratio (using FULL screen height now)
-      const destRatio = screenW / screenH;
+      // Screen = content dimensions
+      const screenW = contentW;
+      const screenH = contentH + statusBarH;  // Add status bar height
       
-      // Calculate how much of the effective source we need (crop horizontally)
-      const sourceUsedH = effectiveSourceH;
-      // Reduce width by 8% to leave lateral margins (frame won't clip text)
-      const sourceUsedW = effectiveSourceH * destRatio * 0.92;
-      const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
-      const sourceStartY = effectiveSourceY;
+      // Frame = screen + bezels
+      const frameW = screenW + (bezelPx * 2);
+      const frameH = screenH + (bezelPx * 2);
       
-      // Debug logging
-      if (!window._logged) {
-        console.log('=== DIMENSIONS DEBUG ===');
-        console.log('Source (video):', sourceWidth, 'x', sourceHeight, 'ratio:', (sourceWidth/sourceHeight).toFixed(3));
-        console.log('Effective source (excl DevTools):', sourceUsedW.toFixed(0), 'x', effectiveSourceH, 'starting at Y:', effectiveSourceY);
-        console.log('Screen logical:', screenLogicalW, 'x', screenLogicalH);
-        console.log('DPR:', dpr);
-        console.log('Dest area:', screenW, 'x', screenH, 'ratio:', (screenW/screenH).toFixed(3));
-        console.log('--- SOURCE CROP ---');
-        console.log('Source used:', sourceUsedW.toFixed(0), 'x', sourceUsedH, '(centered)');
-        console.log('Crop start:', sourceStartX.toFixed(0), ',', sourceStartY);
-        window._logged = true;
+      // Resize canvas if needed (only on first frame to avoid flicker)
+      if (!window._canvasResized) {
+        processCanvas.width = (Math.ceil(frameW) + 1) & ~1;
+        processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
+        window._canvasResized = true;
+        console.log('=== FRAME ADAPTS TO CONTENT ===');
+        console.log('Content:', contentW, 'x', contentH);
+        console.log('Screen (content + statusBar):', screenW, 'x', screenH);
+        console.log('Frame (screen + bezels):', frameW, 'x', frameH);
+        console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
       }
       
-      // --- Sample Background Color from top center of the used source area ---
-      const sampleX = sourceStartX + (sourceUsedW / 2);
-      const sampleY = sourceStartY;
-      colorCtx.drawImage(source, sampleX, sampleY, 1, 1, 0, 0, 1, 1);
+      // Sample background color from top center of content
+      colorCtx.drawImage(source, contentW / 2, contentStartY, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
       const ctx = processContext;
       
-      const frameW = frameLogicalW * scale;
-      const frameH = frameLogicalH * scale;
-      const bezelSize = bezel * scale;
-      const radius = cornerRadius * scale;
-      
-      // Clear the entire canvas explicitly
+      // Clear the entire canvas
       ctx.globalAlpha = 1.0;
       ctx.globalCompositeOperation = 'source-over';
       
       if (bgStyle && bgStyle !== 'transparent' && bgStyle !== 'transparent-force') {
-          // Fill with solid color
           ctx.fillStyle = bgStyle;
           ctx.fillRect(0, 0, processCanvas.width, processCanvas.height);
       } else {
-          // Transparent clearing
-          // Use destination-out for 'transparent-force' to be extra aggressive
           if (bgStyle === 'transparent-force') {
               ctx.globalCompositeOperation = 'destination-out';
               ctx.fillStyle = '#000000';
@@ -164,10 +150,10 @@ async function startRecording(data) {
       // --- Botones Laterales (Silver) ---
       if (showFrame) {
         ctx.fillStyle = '#D1D1D6';
-        roundRect(ctx, -2*scale, 100*scale, 6*scale, 20*scale, 2*scale);
-        roundRect(ctx, -2*scale, 140*scale, 6*scale, 45*scale, 2*scale);
-        roundRect(ctx, -2*scale, 200*scale, 6*scale, 45*scale, 2*scale);
-        roundRect(ctx, frameW - 4*scale, 160*scale, 6*scale, 70*scale, 2*scale);
+        roundRect(ctx, -2, 100, 6, 20, 2);
+        roundRect(ctx, -2, 140, 6, 45, 2);
+        roundRect(ctx, -2, 200, 6, 45, 2);
+        roundRect(ctx, frameW - 4, 160, 6, 70, 2);
         ctx.fill();
         
         // --- Marco Exterior (Chasis Metálico Silver) ---
@@ -180,20 +166,13 @@ async function startRecording(data) {
         grad.addColorStop(1, '#8E8E93');
         
         ctx.fillStyle = grad;
-        roundRect(ctx, 0, 0, frameW, frameH, radius + bezelSize/2); 
+        roundRect(ctx, 0, 0, frameW, frameH, radiusPx + bezelPx/2); 
         ctx.fill();
         
         // --- Bisel Negro Interno ---
-        const rimWidth = 3.5 * scale;
+        const rimWidth = 3.5;
         ctx.fillStyle = '#000000'; 
-        roundRect(
-          ctx, 
-          rimWidth, 
-          rimWidth, 
-          frameW - (rimWidth * 2), 
-          frameH - (rimWidth * 2), 
-          radius
-        ); 
+        roundRect(ctx, rimWidth, rimWidth, frameW - (rimWidth * 2), frameH - (rimWidth * 2), radiusPx); 
         ctx.fill();
       } else {
         ctx.clearRect(0, 0, frameW, frameH);
@@ -201,57 +180,56 @@ async function startRecording(data) {
       
       // --- Pantalla ---
       ctx.save();
-      ctx.translate(bezelSize, bezelSize);
+      ctx.translate(bezelPx, bezelPx);
       
-      const innerRadius = radius - (showFrame ? (bezelSize - (3.5 * scale)) : 0); 
+      const innerRadius = radiusPx - (showFrame ? (bezelPx - 3.5) : 0); 
       
       roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
       ctx.clip();
       
-      // 1. Dibujar Video/Imagen PRIMERO (ocupa toda la pantalla)
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      
-      // Draw the cropped source area, scaled to fill the ENTIRE screen (not below status bar)
-      // This way the web content is visible even behind the status bar (like real iOS)
-      ctx.drawImage(
-        source, 
-        sourceStartX, sourceStartY, sourceUsedW, sourceUsedH,  // source crop
-        0, 0, screenW, screenH                                  // destination: full screen
-      );
-      
-      // 2. Dibujar Fondo de Barra Superior (semi-transparente para no tapar contenido)
+      // 1. Dibujar Status Bar background
       ctx.fillStyle = navColor;
-      ctx.globalAlpha = 0.85;  // Semi-transparent
+      ctx.globalAlpha = 0.9;
       ctx.fillRect(0, 0, screenW, statusBarH);
       ctx.globalAlpha = 1.0;
       
-      // --- Barra de Estado (Status Bar) ---
+      // 2. Dibujar contenido capturado (debajo del status bar)
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Draw the content BELOW the status bar
+      ctx.drawImage(
+        source, 
+        contentStartX, contentStartY, contentW, contentH,  // source: content area
+        0, statusBarH, screenW, contentH                   // destination: below status bar
+      );
+      
+      // --- Barra de Estado (Status Bar icons) ---
       const now = new Date();
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       
-      const textY = statusBarH * 0.65;
+      const textY = statusBarH * 0.7;
       
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = `600 ${15 * scale}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.font = `600 14px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(timeStr, 50 * scale, textY); 
+      ctx.fillText(timeStr, 50, textY); 
       
-      const iconY = textY - (11 * scale);
-      const rightMargin = screenW - (25 * scale);
+      const iconY = textY - 10;
+      const rightMargin = screenW - 25;
       
-      drawBattery(ctx, rightMargin - (25*scale), iconY, 22*scale, 11*scale);
-      drawWifi(ctx, rightMargin - (55*scale), iconY - (2*scale), 16*scale);
-      drawSignal(ctx, rightMargin - (80*scale), iconY, 17*scale, 11*scale);
+      drawBattery(ctx, rightMargin - 25, iconY, 22, 11);
+      drawWifi(ctx, rightMargin - 55, iconY - 2, 16);
+      drawSignal(ctx, rightMargin - 80, iconY, 17, 11);
 
       ctx.restore();
       
       // --- Dynamic Island / Notch ---
       if (showNotch) {
-        const notchW = screenW * 0.3;
-        const notchH = 35 * scale;
+        const notchW = Math.min(screenW * 0.25, 120);  // Max 120px wide
+        const notchH = 32;
         const notchX = (frameW - notchW) / 2;
-        const notchY = bezelSize + (12 * scale);
+        const notchY = bezelPx + 10;
         
         ctx.fillStyle = '#000000';
         roundRect(ctx, notchX, notchY, notchW, notchH, notchH/2);
@@ -259,15 +237,15 @@ async function startRecording(data) {
         
         ctx.fillStyle = '#1A1A1A';
         ctx.beginPath();
-        ctx.arc(notchX + notchW - (12*scale), notchY + notchH/2, 6*scale, 0, Math.PI*2);
+        ctx.arc(notchX + notchW - 12, notchY + notchH/2, 5, 0, Math.PI*2);
         ctx.fill();
       }
 
       // --- Home Indicator ---
-      const hiW = homeIndicatorW * scale;
-      const hiH = homeIndicatorH * scale;
+      const hiW = Math.min(screenW * 0.35, 140);  // Max 140px wide
+      const hiH = 5;
       const hiX = (frameW - hiW) / 2;
-      const hiY = frameH - bezelSize - (8 * scale);
+      const hiY = frameH - bezelPx - 8;
       
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       roundRect(ctx, hiX, hiY, hiW, hiH, hiH/2);

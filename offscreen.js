@@ -86,13 +86,23 @@ async function startRecording(data) {
 
       if (!sourceWidth || !sourceHeight) return;
       
-      // Calculate viewport crop area - the mobile viewport is centered in the captured source
-      // The source is the full browser tab at monitor resolution (e.g., 1920x1080)
-      // The mobile viewport (e.g., 390x844) is centered within that
-      const viewportW = screenLogicalW;
-      const viewportH = screenLogicalH;
-      const sourceViewportX = Math.max(0, (sourceWidth - viewportW) / 2);
-      const sourceViewportY = Math.max(0, (sourceHeight - viewportH) / 2);
+      // Calculate crop area based on aspect ratio matching
+      // The source (e.g., 1920x1200) is horizontal, the destination is vertical
+      // We need to crop the source horizontally to match the destination's aspect ratio
+      const scale = dpr;
+      const screenW = screenLogicalW * scale;
+      const screenH = screenLogicalH * scale;
+      const statusBarH = 50 * scale;
+      const videoDestH = screenH - statusBarH;
+      
+      // Calculate the destination aspect ratio (vertical)
+      const destRatio = screenW / videoDestH;
+      
+      // Calculate how much of the source we need (crop horizontally, use full height)
+      const sourceUsedH = sourceHeight;
+      const sourceUsedW = sourceHeight * destRatio;  // width needed to match dest ratio
+      const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
+      const sourceStartY = 0;
       
       // Debug logging
       if (!window._logged) {
@@ -100,30 +110,24 @@ async function startRecording(data) {
         console.log('Source (video):', sourceWidth, 'x', sourceHeight, 'ratio:', (sourceWidth/sourceHeight).toFixed(3));
         console.log('Screen logical:', screenLogicalW, 'x', screenLogicalH);
         console.log('DPR:', dpr);
-        console.log('Screen scaled:', screenLogicalW * dpr, 'x', screenLogicalH * dpr);
-        console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
-        console.log('Frame:', frameLogicalW * dpr, 'x', frameLogicalH * dpr);
-        console.log('Bezel:', bezel, 'scaled:', bezel * dpr);
-        console.log('--- VIEWPORT CROP ---');
-        console.log('Viewport area:', viewportW, 'x', viewportH);
-        console.log('Crop position:', sourceViewportX, ',', sourceViewportY);
+        console.log('Dest area:', screenW, 'x', videoDestH, 'ratio:', (screenW/videoDestH).toFixed(3));
+        console.log('--- SOURCE CROP ---');
+        console.log('Source used:', sourceUsedW.toFixed(0), 'x', sourceUsedH, '(centered)');
+        console.log('Crop start:', sourceStartX.toFixed(0), ',', sourceStartY);
         window._logged = true;
       }
       
-      // --- Sample Background Color from top center of the viewport area ---
-      const sampleX = sourceViewportX + (viewportW / 2);
-      const sampleY = sourceViewportY;
+      // --- Sample Background Color from top center of the used source area ---
+      const sampleX = sourceStartX + (sourceUsedW / 2);
+      const sampleY = sourceStartY;
       colorCtx.drawImage(source, sampleX, sampleY, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
       const ctx = processContext;
-      const scale = dpr;
       
       const frameW = frameLogicalW * scale;
       const frameH = frameLogicalH * scale;
-      const screenW = screenLogicalW * scale;
-      const screenH = screenLogicalH * scale;
       const bezelSize = bezel * scale;
       const radius = cornerRadius * scale;
       
@@ -195,33 +199,28 @@ async function startRecording(data) {
       roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
       ctx.clip();
       
-      const statusBarHeight = 50 * scale; 
-      
       // 1. Dibujar Fondo de Barra Superior
       ctx.fillStyle = navColor; 
-      ctx.fillRect(0, 0, screenW, statusBarHeight);
+      ctx.fillRect(0, 0, screenW, statusBarH);
       
       // 2. Dibujar Video/Imagen
-      const videoDestH = screenH - statusBarHeight;
-      
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw only the viewport area from the source, scaled to fill the content area
-      // sourceViewportX/Y are the top-left of the centered mobile viewport in the captured source
-      // viewportW/H are the logical dimensions of the mobile viewport
-      // We scale this to fill screenW x videoDestH (which is screenH - statusBarHeight)
+      // Draw the cropped source area, scaled to fill the destination
+      // We crop the source horizontally (centered) to match the destination's aspect ratio
+      // Then scale it to fill screenW x videoDestH
       ctx.drawImage(
         source, 
-        sourceViewportX, sourceViewportY, viewportW, viewportH,  // source crop
-        0, statusBarHeight, screenW, videoDestH                   // destination
+        sourceStartX, sourceStartY, sourceUsedW, sourceUsedH,  // source crop (centered horizontally)
+        0, statusBarH, screenW, videoDestH                      // destination
       );
       
       // --- Barra de Estado (Status Bar) ---
       const now = new Date();
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       
-      const textY = statusBarHeight * 0.65;
+      const textY = statusBarH * 0.65;
       
       ctx.fillStyle = '#FFFFFF';
       ctx.font = `600 ${15 * scale}px -apple-system, BlinkMacSystemFont, sans-serif`;

@@ -87,12 +87,11 @@ async function startRecording(data) {
       if (!sourceWidth || !sourceHeight) return;
       
       // === USE DEVTOOLS DIMENSIONS (from message) ===
-      // screenLogicalW and screenLogicalH come from the popup (e.g., 430x932)
       const statusBarH = 44;  // iOS status bar height
       const bezelPx = showFrame ? 20 : 0;
       const radiusPx = showFrame ? 45 : 0;
       
-      // Screen dimensions from DevTools
+      // Screen dimensions from DevTools (e.g., 430x932)
       const screenW = screenLogicalW;
       const screenH = screenLogicalH;
       
@@ -103,28 +102,43 @@ async function startRecording(data) {
       // Content area (screen minus status bar)
       const contentH = screenH - statusBarH;
       
-      // Find the viewport in the source (it's centered)
-      // The viewport in the capture should match screenLogicalW x screenLogicalH
-      const viewportInSourceW = screenLogicalW;
-      const viewportInSourceH = screenLogicalH;
-      const viewportStartX = Math.max(0, (sourceWidth - viewportInSourceW) / 2);
-      const viewportStartY = Math.max(0, (sourceHeight - viewportInSourceH) / 2);
+      // === SCALE SOURCE TO FIT FRAME ===
+      // The source is the full tab capture (e.g., 1920x1200)
+      // We need to scale it to fit 430x888 (contentH = screenH - statusBarH)
+      // Scale by HEIGHT to fill vertically, crop horizontally if needed
+      const targetRatio = screenW / contentH;  // target aspect ratio
+      const sourceRatio = sourceWidth / sourceHeight;
+      
+      let srcX, srcY, srcW, srcH;
+      
+      if (sourceRatio > targetRatio) {
+        // Source is wider - crop horizontally
+        srcH = sourceHeight;
+        srcW = sourceHeight * targetRatio;
+        srcX = (sourceWidth - srcW) / 2;
+        srcY = 0;
+      } else {
+        // Source is taller - crop vertically
+        srcW = sourceWidth;
+        srcH = sourceWidth / targetRatio;
+        srcX = 0;
+        srcY = (sourceHeight - srcH) / 2;
+      }
       
       // Resize canvas to match frame (only once)
       if (!window._canvasResized) {
         processCanvas.width = (Math.ceil(frameW) + 1) & ~1;
         processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
         window._canvasResized = true;
-        console.log('=== USING DEVTOOLS DIMENSIONS ===');
-        console.log('DevTools viewport:', screenLogicalW, 'x', screenLogicalH);
+        console.log('=== SCALE TO FIT ===');
+        console.log('DevTools viewport:', screenW, 'x', screenH);
         console.log('Source:', sourceWidth, 'x', sourceHeight);
-        console.log('Viewport in source starts at:', viewportStartX, ',', viewportStartY);
+        console.log('Cropping source to:', srcW.toFixed(0), 'x', srcH.toFixed(0), 'at', srcX.toFixed(0), ',', srcY.toFixed(0));
         console.log('Frame:', frameW, 'x', frameH);
-        console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
       }
       
-      // Sample background color from top center of viewport
-      colorCtx.drawImage(source, viewportStartX + viewportInSourceW/2, viewportStartY, 1, 1, 0, 0, 1, 1);
+      // Sample background color from top center
+      colorCtx.drawImage(source, srcX + srcW/2, srcY, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
@@ -198,13 +212,13 @@ async function startRecording(data) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw the viewport from source, positioned below status bar
-      // Source: the centered viewport area in the capture
+      // Draw the scaled/cropped source, positioned below status bar
+      // Source: cropped area from the capture
       // Destination: below the status bar, filling the content area
       ctx.drawImage(
         source, 
-        viewportStartX, viewportStartY + statusBarH, viewportInSourceW, contentH,  // source: viewport (skip status bar area)
-        0, statusBarH, screenW, contentH                                            // destination: below status bar
+        srcX, srcY, srcW, srcH,           // source: cropped to match aspect ratio
+        0, statusBarH, screenW, contentH  // destination: below status bar
       );
       
       // --- Barra de Estado (Status Bar icons) ---

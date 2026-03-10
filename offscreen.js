@@ -386,78 +386,76 @@ async function startRecording(data) {
   }
 }
 
-function waitForVideoFrame(video) {
-  if (typeof video.requestVideoFrameCallback === 'function') {
-    return new Promise((resolve) => video.requestVideoFrameCallback(resolve));
-  }
-  return new Promise((resolve) => setTimeout(resolve, 80));
-}
-
 async function convertToGif(videoBlob) {
   const statusDiv = document.getElementById('status');
-  if (statusDiv) statusDiv.textContent = 'Converting to GIF...';
-  const url = URL.createObjectURL(videoBlob);
-  const video = document.createElement('video');
-  video.muted = true;
-  video.playsInline = true;
-  video.setAttribute('playsinline', '');
-  video.src = url;
-  video.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;pointer-events:none';
-  document.body.appendChild(video);
-  await new Promise((resolve, reject) => {
-    video.onloadedmetadata = resolve;
-    video.onerror = () => reject(new Error('Video failed to load'));
-  });
-  const duration = video.duration;
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  if (!vw || !vh || duration <= 0) {
-    document.body.removeChild(video);
-    URL.revokeObjectURL(url);
-    throw new Error('Invalid video dimensions or duration');
-  }
-  await video.play().catch(() => {});
-  await new Promise((r) => setTimeout(r, 100));
-  video.pause();
-  let cw = Math.min(gifMaxWidth, vw);
-  let ch = Math.round(cw * vh / vw);
-  cw = (cw + 1) & ~1;
-  ch = (ch + 1) & ~1;
-  const canvas = document.createElement('canvas');
-  canvas.width = cw;
-  canvas.height = ch;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const { GIFEncoder, quantize, applyPalette } = await import(/* webpackIgnore: true */ chrome.runtime.getURL('lib/gifenc.js'));
-  const gif = GIFEncoder();
-  const delayMs = Math.round(1000 / gifFps);
-  let palette = null;
-  const frameCount = Math.max(1, Math.floor(duration * gifFps));
-  for (let i = 0; i < frameCount; i++) {
-    const t = Math.min(i / gifFps, duration - 0.001);
-    video.currentTime = t;
-    await new Promise((r) => { video.onseeked = r; });
-    await waitForVideoFrame(video);
-    ctx.drawImage(video, 0, 0, cw, ch);
-    const imageData = ctx.getImageData(0, 0, cw, ch);
-    const data = imageData.data;
-    if (!palette) {
-      palette = quantize(data, 256);
+  try {
+    if (statusDiv) statusDiv.textContent = 'Converting to GIF...';
+    const url = URL.createObjectURL(videoBlob);
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.src = url;
+    video.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;visibility:hidden;pointer-events:none';
+    if (document.body) document.body.appendChild(video);
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Video failed to load'));
+    });
+    const duration = video.duration;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh || duration <= 0) {
+      if (document.body && video.parentNode) document.body.removeChild(video);
+      URL.revokeObjectURL(url);
+      throw new Error('Invalid video dimensions or duration');
     }
-    const index = applyPalette(data, palette);
-    gif.writeFrame(index, cw, ch, { palette, delay: delayMs });
+    video.play().catch(() => {});
+    await new Promise((r) => setTimeout(r, 150));
+    video.pause();
+    let cw = Math.min(gifMaxWidth, vw);
+    let ch = Math.round(cw * vh / vw);
+    cw = (cw + 1) & ~1;
+    ch = (ch + 1) & ~1;
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const { GIFEncoder, quantize, applyPalette } = await import(/* webpackIgnore: true */ chrome.runtime.getURL('lib/gifenc.js'));
+    const gif = GIFEncoder();
+    const delayMs = Math.round(1000 / gifFps);
+    let palette = null;
+    const frameCount = Math.max(1, Math.floor(duration * gifFps));
+    for (let i = 0; i < frameCount; i++) {
+      const t = Math.min(i / gifFps, duration - 0.001);
+      video.currentTime = t;
+      await new Promise((r) => { video.onseeked = r; });
+      await new Promise((r) => setTimeout(r, 60));
+      ctx.drawImage(video, 0, 0, cw, ch);
+      const imageData = ctx.getImageData(0, 0, cw, ch);
+      const data = imageData.data;
+      if (!palette) {
+        palette = quantize(data, 256);
+      }
+      const index = applyPalette(data, palette);
+      gif.writeFrame(index, cw, ch, { palette, delay: delayMs });
+    }
+    gif.finish();
+    if (document.body && video.parentNode) document.body.removeChild(video);
+    URL.revokeObjectURL(url);
+    const bytes = gif.bytes();
+    const gifBlob = new Blob([bytes], { type: 'image/gif' });
+    const gifUrl = URL.createObjectURL(gifBlob);
+    chrome.runtime.sendMessage({
+      type: 'DOWNLOAD_RECORDING',
+      url: gifUrl,
+      filename: `mobile-recording-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.gif`
+    });
+    setTimeout(() => URL.revokeObjectURL(gifUrl), 10000);
+  } catch (err) {
+    console.error('convertToGif error:', err);
+    chrome.runtime.sendMessage({ type: 'GIF_CONVERSION_ERROR', error: err.message });
   }
-  gif.finish();
-  document.body.removeChild(video);
-  URL.revokeObjectURL(url);
-  const bytes = gif.bytes();
-  const gifBlob = new Blob([bytes], { type: 'image/gif' });
-  const gifUrl = URL.createObjectURL(gifBlob);
-  chrome.runtime.sendMessage({
-    type: 'DOWNLOAD_RECORDING',
-    url: gifUrl,
-    filename: `mobile-recording-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.gif`
-  });
-  setTimeout(() => URL.revokeObjectURL(gifUrl), 10000);
   if (statusDiv) statusDiv.textContent = 'Idle';
 }
 

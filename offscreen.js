@@ -86,22 +86,8 @@ async function startRecording(data) {
 
       if (!sourceWidth || !sourceHeight) return;
       
-      const targetRatio = screenLogicalW / screenLogicalH;
-      const sourceRatio = sourceWidth / sourceHeight;
-      
-      let cropW, cropH;
-      if (sourceRatio > targetRatio) {
-        cropH = sourceHeight;
-        cropW = cropH * targetRatio;
-      } else {
-        cropW = sourceWidth;
-        cropH = cropW / targetRatio;
-      }
-      const cropX = (sourceWidth - cropW) / 2;
-      const cropY = (sourceHeight - cropH) / 2;
-      
-      // --- Sample Background Color ---
-      colorCtx.drawImage(source, cropX + (cropW/2), cropY, 1, 1, 0, 0, 1, 1);
+      // --- Sample Background Color from top center of source ---
+      colorCtx.drawImage(source, sourceWidth / 2, 0, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
@@ -195,15 +181,11 @@ async function startRecording(data) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      const zoomFactor = 0.99; 
-      const cleanCropW = cropW * zoomFactor;
-      const cleanCropH = cropH * zoomFactor;
-      const cleanCropX = cropX + (cropW - cleanCropW) / 2;
-      const cleanCropY = cropY; 
-
+      // Draw the full source, scaled to fit the content area
+      // This may cause slight aspect ratio distortion but fills the area completely
       ctx.drawImage(
         source, 
-        cleanCropX, cleanCropY, cleanCropW, cleanCropH, 
+        0, 0, sourceWidth, sourceHeight, 
         0, statusBarHeight, screenW, videoDestH 
       );
       

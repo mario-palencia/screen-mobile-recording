@@ -13,6 +13,10 @@
   <div id="status">Idle</div>
   <video id="sourceVideo" autoplay muted style="display: none;"></video>
   <canvas id="processCanvas" style="display: none;"></canvas>
+  <script type="module">
+    import { GIFEncoder, quantize, applyPalette } from './lib/gifenc.js';
+    window.gifenc = { GIFEncoder, quantize, applyPalette };
+  </script>
   <script src="offscreen.js"></script>
 </body>
 </html>

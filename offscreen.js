@@ -40,10 +40,11 @@ async function startRecording(data) {
   }
   
     const { streamId, width, height, devicePixelRatio, showNotch, showFrame, recordMP4, recordWebM, bgStyle, mode, recordGif, gifMaxWidth: gifW, gifFps: gifF } = data;
-    console.log('Starting capture with bgStyle:', bgStyle, 'Mode:', mode);
+    console.log('Starting capture with bgStyle:', bgStyle, 'Mode:', mode, 'recordGif:', recordGif);
     gifRecordRequested = recordGif === true;
     gifMaxWidth = typeof gifW === 'number' ? gifW : 400;
     gifFps = typeof gifF === 'number' ? gifF : 5;
+    console.log('GIF settings - requested:', gifRecordRequested, 'maxWidth:', gifMaxWidth, 'fps:', gifFps);
 
     let dpr = devicePixelRatio || 1;
     const screenLogicalW = width;
@@ -387,6 +388,7 @@ async function startRecording(data) {
 }
 
 async function convertToGif(videoBlob) {
+  console.log('convertToGif called, blob size:', videoBlob.size);
   const statusDiv = document.getElementById('status');
   try {
     if (statusDiv) statusDiv.textContent = 'Converting to GIF...';
@@ -421,7 +423,16 @@ async function convertToGif(videoBlob) {
     canvas.width = cw;
     canvas.height = ch;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const { GIFEncoder, quantize, applyPalette } = await import(/* webpackIgnore: true */ chrome.runtime.getURL('lib/gifenc.js'));
+    let retries = 0;
+    while (!window.gifenc && retries < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      retries++;
+    }
+    if (!window.gifenc) {
+      throw new Error('gifenc library not loaded after 5s');
+    }
+    console.log('gifenc loaded successfully');
+    const { GIFEncoder, quantize, applyPalette } = window.gifenc;
     const gif = GIFEncoder();
     const delayMs = Math.round(1000 / gifFps);
     let palette = null;
@@ -446,10 +457,12 @@ async function convertToGif(videoBlob) {
     const bytes = gif.bytes();
     const gifBlob = new Blob([bytes], { type: 'image/gif' });
     const gifUrl = URL.createObjectURL(gifBlob);
+    const gifFilename = `mobile-recording-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.gif`;
+    console.log('GIF conversion complete, size:', gifBlob.size, 'filename:', gifFilename);
     chrome.runtime.sendMessage({
       type: 'DOWNLOAD_RECORDING',
       url: gifUrl,
-      filename: `mobile-recording-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.gif`
+      filename: gifFilename
     });
     setTimeout(() => URL.revokeObjectURL(gifUrl), 10000);
   } catch (err) {
@@ -504,8 +517,10 @@ function createAndStartRecorder(stream, mimeType, extension) {
       setTimeout(() => URL.revokeObjectURL(url), 10000);
 
       // Convert to GIF once (use first recorder that stops, prefer MP4 for decoding)
+      console.log('Checking gifRecordRequested:', gifRecordRequested);
       if (gifRecordRequested) {
         gifRecordRequested = false;
+        console.log('Starting GIF conversion...');
         convertToGif(blob).catch((err) => {
           console.error('GIF conversion failed:', err);
           chrome.runtime.sendMessage({ type: 'GIF_CONVERSION_ERROR', error: err.message });

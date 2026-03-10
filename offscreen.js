@@ -111,17 +111,20 @@ async function startRecording(data) {
       
       let srcX, srcY, srcW, srcH;
       
+      // Add lateral margin (5% total = 2.5% each side)
+      const lateralMargin = 0.95;
+      
       if (sourceRatio > targetRatio) {
         // Source is wider - crop horizontally
         srcH = sourceHeight;
-        srcW = sourceHeight * targetRatio;
+        srcW = sourceHeight * targetRatio * lateralMargin;
         srcX = (sourceWidth - srcW) / 2;
         srcY = 0;
       } else {
         // Source is taller - crop vertically
-        srcW = sourceWidth;
-        srcH = sourceWidth / targetRatio;
-        srcX = 0;
+        srcW = sourceWidth * lateralMargin;
+        srcH = srcW / targetRatio;
+        srcX = (sourceWidth - srcW) / 2;
         srcY = (sourceHeight - srcH) / 2;
       }
       

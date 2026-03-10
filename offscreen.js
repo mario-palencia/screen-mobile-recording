@@ -337,10 +337,11 @@ async function startRecording(data) {
     }
 
     const draw = () => {
-      // Re-schedule immediately for next frame using requestAnimationFrame equivalent logic
-      // if using setInterval, no need to reschedule.
       renderFrame(sourceVideo);
     };
+    
+    // Draw first frame immediately before starting intervals
+    draw();
     
     // Start drawing loop for Video
     animationId = setInterval(draw, 1000 / 30);
@@ -368,9 +369,12 @@ async function startRecording(data) {
         gifFrames.push(new Uint8Array(imageData.data));
       };
       
-      captureGifFrame();
-      gifFrameInterval = setInterval(captureGifFrame, Math.round(1000 / gifFps));
-      console.log('GIF frame capture started:', gifCanvasWidth, 'x', gifCanvasHeight, '@', gifFps, 'fps');
+      // Start GIF capture after a short delay to ensure canvas has content
+      setTimeout(() => {
+        captureGifFrame();
+        gifFrameInterval = setInterval(captureGifFrame, Math.round(1000 / gifFps));
+        console.log('GIF frame capture started:', gifCanvasWidth, 'x', gifCanvasHeight, '@', gifFps, 'fps');
+      }, 100);
     }
     
     // --- Recorder Setup ---

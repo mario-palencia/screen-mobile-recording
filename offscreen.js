@@ -107,16 +107,16 @@ async function startRecording(data) {
       
       // === SCALE SOURCE TO FIT FRAME ===
       // The source is the full tab capture (e.g., 1920x1200)
-      // We need to scale it to fit 430x932 (contentH)
-      // Scale by HEIGHT to fill vertically, crop horizontally if needed
-      const targetRatio = screenW / contentH;  // target aspect ratio
+      // We need to scale it to fit 430x932 (original contentH, NOT the extended screenH)
+      // Scale by HEIGHT to fill the CONTENT area vertically
+      const targetRatio = screenW / contentH;  // target aspect ratio of content area
       const sourceRatio = sourceWidth / sourceHeight;
       
       let srcX, srcY, srcW, srcH;
       
       // Add margin (use slightly less of source to leave padding)
-      // This reduces both width AND height proportionally to maintain aspect ratio
-      const marginFactor = 0.92;  // Use 92% of source (4% margin each side)
+      // Adjusted to 0.96 (4% total margin) to show more content width
+      const marginFactor = 0.96;
       
       if (sourceRatio > targetRatio) {
         // Source is wider - crop horizontally, scale to fit height

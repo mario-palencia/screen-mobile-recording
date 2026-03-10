@@ -107,7 +107,8 @@ async function startRecording(data) {
       
       // Calculate how much of the effective source we need (crop horizontally)
       const sourceUsedH = effectiveSourceH;
-      const sourceUsedW = effectiveSourceH * destRatio;
+      // Reduce width by 8% to leave lateral margins (frame won't clip text)
+      const sourceUsedW = effectiveSourceH * destRatio * 0.92;
       const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
       const sourceStartY = effectiveSourceY;
       

@@ -92,22 +92,20 @@ async function startRecording(data) {
       const scale = dpr;
       const screenW = screenLogicalW * scale;
       const screenH = screenLogicalH * scale;
-      const statusBarH = 25 * scale;  // Reduced from 50 to not cover web header
-      const videoDestH = screenH - statusBarH;
+      const statusBarH = 44 * scale;  // iOS standard status bar height
       
       // Estimate DevTools UI to exclude (minimal values to capture more content)
-      const devToolsTopBar = 50;   // pixels to skip at top (reduced)
+      const devToolsTopBar = 50;   // pixels to skip at top
       const devToolsBottomBar = 40;  // pixels to skip at bottom
       
       // Effective source area (excluding DevTools UI)
       const effectiveSourceH = sourceHeight - devToolsTopBar - devToolsBottomBar;
       const effectiveSourceY = devToolsTopBar;
       
-      // Calculate the destination aspect ratio (vertical)
-      const destRatio = screenW / videoDestH;
+      // Calculate the destination aspect ratio (using FULL screen height now)
+      const destRatio = screenW / screenH;
       
       // Calculate how much of the effective source we need (crop horizontally)
-      // Use full calculated width (no lateral padding) to avoid clipping text
       const sourceUsedH = effectiveSourceH;
       const sourceUsedW = effectiveSourceH * destRatio;
       const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
@@ -209,22 +207,23 @@ async function startRecording(data) {
       roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
       ctx.clip();
       
-      // 1. Dibujar Fondo de Barra Superior
-      ctx.fillStyle = navColor; 
-      ctx.fillRect(0, 0, screenW, statusBarH);
-      
-      // 2. Dibujar Video/Imagen
+      // 1. Dibujar Video/Imagen PRIMERO (ocupa toda la pantalla)
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw the cropped source area, scaled to fill the destination
-      // We crop the source horizontally (centered) to match the destination's aspect ratio
-      // Then scale it to fill screenW x videoDestH
+      // Draw the cropped source area, scaled to fill the ENTIRE screen (not below status bar)
+      // This way the web content is visible even behind the status bar (like real iOS)
       ctx.drawImage(
         source, 
-        sourceStartX, sourceStartY, sourceUsedW, sourceUsedH,  // source crop (centered horizontally)
-        0, statusBarH, screenW, videoDestH                      // destination
+        sourceStartX, sourceStartY, sourceUsedW, sourceUsedH,  // source crop
+        0, 0, screenW, screenH                                  // destination: full screen
       );
+      
+      // 2. Dibujar Fondo de Barra Superior (semi-transparente para no tapar contenido)
+      ctx.fillStyle = navColor;
+      ctx.globalAlpha = 0.85;  // Semi-transparent
+      ctx.fillRect(0, 0, screenW, statusBarH);
+      ctx.globalAlpha = 1.0;
       
       // --- Barra de Estado (Status Bar) ---
       const now = new Date();

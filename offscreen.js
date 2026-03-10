@@ -92,12 +92,12 @@ async function startRecording(data) {
       const scale = dpr;
       const screenW = screenLogicalW * scale;
       const screenH = screenLogicalH * scale;
-      const statusBarH = 50 * scale;
+      const statusBarH = 25 * scale;  // Reduced from 50 to not cover web header
       const videoDestH = screenH - statusBarH;
       
-      // Estimate DevTools UI to exclude (adjust if needed)
-      const devToolsTopBar = 125;  // pixels to skip at top (increased to avoid header overlap)
-      const devToolsBottomBar = 60;  // pixels to skip at bottom
+      // Estimate DevTools UI to exclude (minimal values to capture more content)
+      const devToolsTopBar = 50;   // pixels to skip at top (reduced)
+      const devToolsBottomBar = 40;  // pixels to skip at bottom
       
       // Effective source area (excluding DevTools UI)
       const effectiveSourceH = sourceHeight - devToolsTopBar - devToolsBottomBar;
@@ -107,11 +107,9 @@ async function startRecording(data) {
       const destRatio = screenW / videoDestH;
       
       // Calculate how much of the effective source we need (crop horizontally)
-      // Add lateral padding (96% of calculated width) so frame doesn't clip text
+      // Use full calculated width (no lateral padding) to avoid clipping text
       const sourceUsedH = effectiveSourceH;
-      const sourceUsedWRaw = effectiveSourceH * destRatio;
-      const lateralPadding = 0.96;  // use 96% of width for some breathing room
-      const sourceUsedW = sourceUsedWRaw * lateralPadding;
+      const sourceUsedW = effectiveSourceH * destRatio;
       const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
       const sourceStartY = effectiveSourceY;
       

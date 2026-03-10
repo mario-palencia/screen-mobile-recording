@@ -86,6 +86,19 @@ async function startRecording(data) {
 
       if (!sourceWidth || !sourceHeight) return;
       
+      // Debug logging
+      if (!window._logged) {
+        console.log('=== DIMENSIONS DEBUG ===');
+        console.log('Source (video):', sourceWidth, 'x', sourceHeight, 'ratio:', (sourceWidth/sourceHeight).toFixed(3));
+        console.log('Screen logical:', screenLogicalW, 'x', screenLogicalH);
+        console.log('DPR:', dpr);
+        console.log('Screen scaled:', screenLogicalW * dpr, 'x', screenLogicalH * dpr);
+        console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
+        console.log('Frame:', frameLogicalW * dpr, 'x', frameLogicalH * dpr);
+        console.log('Bezel:', bezel, 'scaled:', bezel * dpr);
+        window._logged = true;
+      }
+      
       // --- Sample Background Color from top center of source ---
       colorCtx.drawImage(source, sourceWidth / 2, 0, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;

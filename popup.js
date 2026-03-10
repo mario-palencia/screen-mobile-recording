@@ -6,9 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const mp4Toggle = document.getElementById('mp4-toggle');
   const webmToggle = document.getElementById('webm-toggle');
   const bgStyleSelect = document.getElementById('bg-style');
+  const gifToggle = document.getElementById('gif-toggle');
   
   // Load saved settings
-  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle'], (result) => {
+  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'recordGif'], (result) => {
     if (result.showNotch !== undefined) {
       notchToggle.checked = result.showNotch;
     }
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (result.bgStyle) {
         bgStyleSelect.value = result.bgStyle;
     }
+    gifToggle.checked = result.recordGif !== undefined ? result.recordGif : true;
   });
 
   // Save settings on change
@@ -44,6 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
   bgStyleSelect.addEventListener('change', () => {
       chrome.storage.local.set({ bgStyle: bgStyleSelect.value });
   });
+
+  gifToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ recordGif: gifToggle.checked });
+  });
   
   // Check initial state
   chrome.runtime.sendMessage({ type: 'GET_RECORDING_STATE' }, (response) => {
@@ -64,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mp4Toggle.disabled = true;
       webmToggle.disabled = true;
       bgStyleSelect.disabled = true;
+      gifToggle.disabled = true;
     } else {
       startBtn.textContent = 'Start Recording';
       startBtn.style.background = '#00d4aa';
@@ -75,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
       mp4Toggle.disabled = false;
       webmToggle.disabled = false;
       bgStyleSelect.disabled = false;
+      gifToggle.disabled = false;
     }
   }
 
@@ -112,7 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
           showFrame: frameToggle.checked,
           recordMP4: mp4Toggle.checked,
           recordWebM: webmToggle.checked,
-          bgStyle: bgStyleSelect.value
+          bgStyle: bgStyleSelect.value,
+          recordGif: gifToggle.checked,
+          gifMaxWidth: 400,
+          gifFps: 5
         });
         updateUI(true);
       } else {

@@ -19,6 +19,9 @@ let animationId;
 let stream;
 let canvasStream;
 let cleanupTimeout;
+let gifRecordRequested = false;
+let gifMaxWidth = 400;
+let gifFps = 5;
 
 async function startRecording(data) {
   // Cancel any pending cleanup from previous session
@@ -36,8 +39,11 @@ async function startRecording(data) {
     sourceVideo.srcObject = null;
   }
   
-    const { streamId, width, height, devicePixelRatio, showNotch, showFrame, recordMP4, recordWebM, bgStyle, mode } = data;
+    const { streamId, width, height, devicePixelRatio, showNotch, showFrame, recordMP4, recordWebM, bgStyle, mode, recordGif, gifMaxWidth: gifW, gifFps: gifF } = data;
     console.log('Starting capture with bgStyle:', bgStyle, 'Mode:', mode);
+    gifRecordRequested = recordGif === true;
+    gifMaxWidth = typeof gifW === 'number' ? gifW : 400;
+    gifFps = typeof gifF === 'number' ? gifF : 5;
 
     let dpr = devicePixelRatio || 1;
     const screenLogicalW = width;
@@ -380,6 +386,65 @@ async function startRecording(data) {
   }
 }
 
+async function convertToGif(videoBlob) {
+  const statusDiv = document.getElementById('status');
+  if (statusDiv) statusDiv.textContent = 'Converting to GIF...';
+  const url = URL.createObjectURL(videoBlob);
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.src = url;
+  await new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onerror = () => reject(new Error('Video failed to load'));
+  });
+  const duration = video.duration;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh || duration <= 0) {
+    URL.revokeObjectURL(url);
+    throw new Error('Invalid video dimensions or duration');
+  }
+  let cw = Math.min(gifMaxWidth, vw);
+  let ch = Math.round(cw * vh / vw);
+  cw = (cw + 1) & ~1;
+  ch = (ch + 1) & ~1;
+  const canvas = document.createElement('canvas');
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const { GIFEncoder, quantize, applyPalette } = await import(/* webpackIgnore: true */ chrome.runtime.getURL('lib/gifenc.js'));
+  const gif = GIFEncoder();
+  const delayMs = Math.round(1000 / gifFps);
+  let palette = null;
+  const frameCount = Math.max(1, Math.floor(duration * gifFps));
+  for (let i = 0; i < frameCount; i++) {
+    const t = Math.min(i / gifFps, duration - 0.001);
+    video.currentTime = t;
+    await new Promise((r) => { video.onseeked = r; });
+    ctx.drawImage(video, 0, 0, cw, ch);
+    const imageData = ctx.getImageData(0, 0, cw, ch);
+    const data = imageData.data;
+    if (!palette) {
+      palette = quantize(data, 256);
+    }
+    const index = applyPalette(data, palette);
+    gif.writeFrame(index, cw, ch, { palette, delay: delayMs });
+  }
+  gif.finish();
+  const bytes = gif.bytes();
+  const gifBlob = new Blob([bytes], { type: 'image/gif' });
+  const gifUrl = URL.createObjectURL(gifBlob);
+  chrome.runtime.sendMessage({
+    type: 'DOWNLOAD_RECORDING',
+    url: gifUrl,
+    filename: `mobile-recording-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.gif`
+  });
+  setTimeout(() => URL.revokeObjectURL(gifUrl), 10000);
+  URL.revokeObjectURL(url);
+  if (statusDiv) statusDiv.textContent = 'Idle';
+}
+
 function createAndStartRecorder(stream, mimeType, extension) {
   try {
     const recorder = new MediaRecorder(stream, { 
@@ -423,6 +488,15 @@ function createAndStartRecorder(stream, mimeType, extension) {
       
       // Cleanup this specific URL later
       setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+      // Convert to GIF once (use first recorder that stops, prefer MP4 for decoding)
+      if (gifRecordRequested) {
+        gifRecordRequested = false;
+        convertToGif(blob).catch((err) => {
+          console.error('GIF conversion failed:', err);
+          chrome.runtime.sendMessage({ type: 'GIF_CONVERSION_ERROR', error: err.message });
+        });
+      }
       
       // Check if all recorders are finished to do global cleanup
       checkCleanup();

@@ -34,7 +34,7 @@ let timerInterval = null;
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === 'START_RECORDING_REQUEST') {
-    startCapture(message.tabId, message.showNotch, message.showFrame, message.recordMP4, message.recordWebM, message.bgStyle, 'recording');
+    startCapture(message.tabId, message.showNotch, message.showFrame, message.recordMP4, message.recordWebM, message.bgStyle, 'recording', message.recordGif, message.gifMaxWidth, message.gifFps);
     isRecording = true;
     recordingTabId = message.tabId;
     
@@ -76,6 +76,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     stopRecording();
     chrome.action.setBadgeText({ text: 'ERR' });
     chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+  } else if (message.type === 'GIF_CONVERSION_ERROR') {
+    console.warn('GIF conversion failed:', message.error);
   }
 });
 
@@ -131,7 +133,7 @@ function injectLinkEnforcer(tabId) {
   }).catch(() => {});
 }
 
-async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4 = true, recordWebM = true, bgStyle = 'transparent', mode = 'recording') {
+async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4 = true, recordWebM = true, bgStyle = 'transparent', mode = 'recording', recordGif = true, gifMaxWidth = 400, gifFps = 5) {
   try {
     // 1. Get tab info/dimensions via scripting
     const results = await chrome.scripting.executeScript({
@@ -218,7 +220,10 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
           recordMP4: recordMP4,
           recordWebM: recordWebM,
           bgStyle: bgStyle,
-          mode: mode
+          mode: mode,
+          recordGif: recordGif,
+          gifMaxWidth: gifMaxWidth,
+          gifFps: gifFps
         }
       });
       

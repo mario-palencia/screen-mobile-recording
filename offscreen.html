@@ -11,8 +11,8 @@
 <body>
   <h1>Offscreen Recorder</h1>
   <div id="status">Idle</div>
-  <video id="sourceVideo" autoplay muted style="display: none;"></video>
-  <canvas id="processCanvas" style="display: none;"></canvas>
+  <video id="sourceVideo" autoplay muted style="position:absolute;left:-9999px;width:1px;height:1px;"></video>
+  <canvas id="processCanvas" style="position:absolute;left:-9999px;"></canvas>
   <script src="lib/gifenc-bundle.js"></script>
   <script src="offscreen.js"></script>
 </body>

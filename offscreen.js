@@ -118,7 +118,7 @@ async function startRecording(data) {
         console.log('Effective source (excl DevTools):', sourceUsedW.toFixed(0), 'x', effectiveSourceH, 'starting at Y:', effectiveSourceY);
         console.log('Screen logical:', screenLogicalW, 'x', screenLogicalH);
         console.log('DPR:', dpr);
-        console.log('Dest area:', screenW, 'x', videoDestH, 'ratio:', (screenW/videoDestH).toFixed(3));
+        console.log('Dest area:', screenW, 'x', screenH, 'ratio:', (screenW/screenH).toFixed(3));
         console.log('--- SOURCE CROP ---');
         console.log('Source used:', sourceUsedW.toFixed(0), 'x', sourceUsedH, '(centered)');
         console.log('Crop start:', sourceStartX.toFixed(0), ',', sourceStartY);

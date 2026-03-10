@@ -92,19 +92,22 @@ async function startRecording(data) {
       const radiusPx = showFrame ? 45 : 0;
       
       // Screen dimensions from DevTools (e.g., 430x932)
+      // WE WANT TO SHOW FULL CONTENT + STATUS BAR
+      // So effective screen height must be larger to accommodate status bar without covering content
       const screenW = screenLogicalW;
-      const screenH = screenLogicalH;
+      const contentH = screenLogicalH; // The capture is the full content height
+      
+      // New screen height = content height + status bar
+      // This makes the device frame taller to fit everything without overlapping
+      const screenH = contentH + statusBarH;
       
       // Frame = screen + bezels
       const frameW = screenW + (bezelPx * 2);
       const frameH = screenH + (bezelPx * 2);
       
-      // Content area (screen minus status bar)
-      const contentH = screenH - statusBarH;
-      
       // === SCALE SOURCE TO FIT FRAME ===
       // The source is the full tab capture (e.g., 1920x1200)
-      // We need to scale it to fit 430x888 (contentH = screenH - statusBarH)
+      // We need to scale it to fit 430x932 (contentH)
       // Scale by HEIGHT to fill vertically, crop horizontally if needed
       const targetRatio = screenW / contentH;  // target aspect ratio
       const sourceRatio = sourceWidth / sourceHeight;
@@ -134,10 +137,9 @@ async function startRecording(data) {
         processCanvas.width = (Math.ceil(frameW) + 1) & ~1;
         processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
         window._canvasResized = true;
-        console.log('=== SCALE TO FIT ===');
-        console.log('DevTools viewport:', screenW, 'x', screenH);
-        console.log('Source:', sourceWidth, 'x', sourceHeight);
-        console.log('Cropping source to:', srcW.toFixed(0), 'x', srcH.toFixed(0), 'at', srcX.toFixed(0), ',', srcY.toFixed(0));
+        console.log('=== SCALE TO FIT (EXTENDED FRAME) ===');
+        console.log('DevTools content:', screenW, 'x', contentH);
+        console.log('Screen (content + status):', screenW, 'x', screenH);
         console.log('Frame:', frameW, 'x', frameH);
       }
       
@@ -206,23 +208,19 @@ async function startRecording(data) {
       roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
       ctx.clip();
       
-      // 1. Dibujar Status Bar background
+      // 1. Dibujar Status Bar background (top of screen)
       ctx.fillStyle = navColor;
-      ctx.globalAlpha = 0.9;
       ctx.fillRect(0, 0, screenW, statusBarH);
-      ctx.globalAlpha = 1.0;
       
       // 2. Dibujar contenido capturado (debajo del status bar)
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw the scaled/cropped source, positioned below status bar
-      // Source: cropped area from the capture
-      // Destination: below the status bar, filling the content area
+      // Draw content filling the area BELOW status bar
       ctx.drawImage(
         source, 
-        srcX, srcY, srcW, srcH,           // source: cropped to match aspect ratio
-        0, statusBarH, screenW, contentH  // destination: below status bar
+        srcX, srcY, srcW, srcH,           // source: cropped area
+        0, statusBarH, screenW, contentH  // destination: below status bar, full content height
       );
       
       // --- Barra de Estado (Status Bar icons) ---

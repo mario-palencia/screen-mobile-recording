@@ -87,27 +87,36 @@ async function startRecording(data) {
       if (!sourceWidth || !sourceHeight) return;
       
       // Calculate crop area based on aspect ratio matching
-      // The source (e.g., 1920x1200) is horizontal, the destination is vertical
-      // We need to crop the source horizontally to match the destination's aspect ratio
+      // The source includes DevTools UI (toolbar at top ~100px)
+      // We need to exclude that and crop to match the mobile viewport proportions
       const scale = dpr;
       const screenW = screenLogicalW * scale;
       const screenH = screenLogicalH * scale;
       const statusBarH = 50 * scale;
       const videoDestH = screenH - statusBarH;
       
+      // Estimate DevTools toolbar height (adjust if needed)
+      const devToolsTopBar = 80;  // pixels to skip at top of source
+      const devToolsBottomBar = 50;  // pixels to skip at bottom
+      
+      // Effective source area (excluding DevTools UI)
+      const effectiveSourceH = sourceHeight - devToolsTopBar - devToolsBottomBar;
+      const effectiveSourceY = devToolsTopBar;
+      
       // Calculate the destination aspect ratio (vertical)
       const destRatio = screenW / videoDestH;
       
-      // Calculate how much of the source we need (crop horizontally, use full height)
-      const sourceUsedH = sourceHeight;
-      const sourceUsedW = sourceHeight * destRatio;  // width needed to match dest ratio
+      // Calculate how much of the effective source we need (crop horizontally)
+      const sourceUsedH = effectiveSourceH;
+      const sourceUsedW = effectiveSourceH * destRatio;  // width needed to match dest ratio
       const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
-      const sourceStartY = 0;
+      const sourceStartY = effectiveSourceY;
       
       // Debug logging
       if (!window._logged) {
         console.log('=== DIMENSIONS DEBUG ===');
         console.log('Source (video):', sourceWidth, 'x', sourceHeight, 'ratio:', (sourceWidth/sourceHeight).toFixed(3));
+        console.log('Effective source (excl DevTools):', sourceUsedW.toFixed(0), 'x', effectiveSourceH, 'starting at Y:', effectiveSourceY);
         console.log('Screen logical:', screenLogicalW, 'x', screenLogicalH);
         console.log('DPR:', dpr);
         console.log('Dest area:', screenW, 'x', videoDestH, 'ratio:', (screenW/videoDestH).toFixed(3));

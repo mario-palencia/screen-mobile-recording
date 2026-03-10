@@ -87,7 +87,7 @@ async function startRecording(data) {
       if (!sourceWidth || !sourceHeight) return;
       
       // Calculate crop area based on aspect ratio matching
-      // The source includes DevTools UI (toolbar at top ~100px)
+      // The source includes DevTools UI (toolbar at top)
       // We need to exclude that and crop to match the mobile viewport proportions
       const scale = dpr;
       const screenW = screenLogicalW * scale;
@@ -95,9 +95,9 @@ async function startRecording(data) {
       const statusBarH = 50 * scale;
       const videoDestH = screenH - statusBarH;
       
-      // Estimate DevTools toolbar height (adjust if needed)
-      const devToolsTopBar = 80;  // pixels to skip at top of source
-      const devToolsBottomBar = 50;  // pixels to skip at bottom
+      // Estimate DevTools UI to exclude (adjust if needed)
+      const devToolsTopBar = 125;  // pixels to skip at top (increased to avoid header overlap)
+      const devToolsBottomBar = 60;  // pixels to skip at bottom
       
       // Effective source area (excluding DevTools UI)
       const effectiveSourceH = sourceHeight - devToolsTopBar - devToolsBottomBar;
@@ -107,8 +107,11 @@ async function startRecording(data) {
       const destRatio = screenW / videoDestH;
       
       // Calculate how much of the effective source we need (crop horizontally)
+      // Add lateral padding (96% of calculated width) so frame doesn't clip text
       const sourceUsedH = effectiveSourceH;
-      const sourceUsedW = effectiveSourceH * destRatio;  // width needed to match dest ratio
+      const sourceUsedWRaw = effectiveSourceH * destRatio;
+      const lateralPadding = 0.96;  // use 96% of width for some breathing room
+      const sourceUsedW = sourceUsedWRaw * lateralPadding;
       const sourceStartX = Math.max(0, (sourceWidth - sourceUsedW) / 2);  // center crop
       const sourceStartY = effectiveSourceY;
       

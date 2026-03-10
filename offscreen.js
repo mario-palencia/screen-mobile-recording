@@ -86,6 +86,14 @@ async function startRecording(data) {
 
       if (!sourceWidth || !sourceHeight) return;
       
+      // Calculate viewport crop area - the mobile viewport is centered in the captured source
+      // The source is the full browser tab at monitor resolution (e.g., 1920x1080)
+      // The mobile viewport (e.g., 390x844) is centered within that
+      const viewportW = screenLogicalW;
+      const viewportH = screenLogicalH;
+      const sourceViewportX = Math.max(0, (sourceWidth - viewportW) / 2);
+      const sourceViewportY = Math.max(0, (sourceHeight - viewportH) / 2);
+      
       // Debug logging
       if (!window._logged) {
         console.log('=== DIMENSIONS DEBUG ===');
@@ -96,11 +104,16 @@ async function startRecording(data) {
         console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
         console.log('Frame:', frameLogicalW * dpr, 'x', frameLogicalH * dpr);
         console.log('Bezel:', bezel, 'scaled:', bezel * dpr);
+        console.log('--- VIEWPORT CROP ---');
+        console.log('Viewport area:', viewportW, 'x', viewportH);
+        console.log('Crop position:', sourceViewportX, ',', sourceViewportY);
         window._logged = true;
       }
       
-      // --- Sample Background Color from top center of source ---
-      colorCtx.drawImage(source, sourceWidth / 2, 0, 1, 1, 0, 0, 1, 1);
+      // --- Sample Background Color from top center of the viewport area ---
+      const sampleX = sourceViewportX + (viewportW / 2);
+      const sampleY = sourceViewportY;
+      colorCtx.drawImage(source, sampleX, sampleY, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
@@ -194,12 +207,14 @@ async function startRecording(data) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw the full source, scaled to fit the content area
-      // This may cause slight aspect ratio distortion but fills the area completely
+      // Draw only the viewport area from the source, scaled to fill the content area
+      // sourceViewportX/Y are the top-left of the centered mobile viewport in the captured source
+      // viewportW/H are the logical dimensions of the mobile viewport
+      // We scale this to fill screenW x videoDestH (which is screenH - statusBarHeight)
       ctx.drawImage(
         source, 
-        0, 0, sourceWidth, sourceHeight, 
-        0, statusBarHeight, screenW, videoDestH 
+        sourceViewportX, sourceViewportY, viewportW, viewportH,  // source crop
+        0, statusBarHeight, screenW, videoDestH                   // destination
       );
       
       // --- Barra de Estado (Status Bar) ---

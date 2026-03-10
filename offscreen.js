@@ -111,18 +111,19 @@ async function startRecording(data) {
       
       let srcX, srcY, srcW, srcH;
       
-      // Add lateral margin (5% total = 2.5% each side)
-      const lateralMargin = 0.95;
+      // Add margin (use slightly less of source to leave padding)
+      // This reduces both width AND height proportionally to maintain aspect ratio
+      const marginFactor = 0.92;  // Use 92% of source (4% margin each side)
       
       if (sourceRatio > targetRatio) {
-        // Source is wider - crop horizontally
-        srcH = sourceHeight;
-        srcW = sourceHeight * targetRatio * lateralMargin;
+        // Source is wider - crop horizontally, scale to fit height
+        srcH = sourceHeight * marginFactor;
+        srcW = srcH * targetRatio;
         srcX = (sourceWidth - srcW) / 2;
-        srcY = 0;
+        srcY = (sourceHeight - srcH) / 2;
       } else {
-        // Source is taller - crop vertically
-        srcW = sourceWidth * lateralMargin;
+        // Source is taller - crop vertically, scale to fit width
+        srcW = sourceWidth * marginFactor;
         srcH = srcW / targetRatio;
         srcX = (sourceWidth - srcW) / 2;
         srcY = (sourceHeight - srcH) / 2;

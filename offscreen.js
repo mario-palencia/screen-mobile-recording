@@ -423,13 +423,8 @@ async function convertToGif(videoBlob) {
     canvas.width = cw;
     canvas.height = ch;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    let retries = 0;
-    while (!window.gifenc && retries < 50) {
-      await new Promise(r => setTimeout(r, 100));
-      retries++;
-    }
     if (!window.gifenc) {
-      throw new Error('gifenc library not loaded after 5s');
+      throw new Error('gifenc library not loaded');
     }
     console.log('gifenc loaded successfully');
     const { GIFEncoder, quantize, applyPalette } = window.gifenc;

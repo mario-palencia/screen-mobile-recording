@@ -68,7 +68,7 @@ async function startRecording(data) {
     const colorCtx = colorCanvas.getContext('2d', { willReadFrequently: true });
     
     // Abstracted Draw Logic to handle both Video and Image sources
-    // NEW APPROACH: Frame adapts to captured content, not the other way around
+    // Use dimensions from DevTools (passed in message) for the frame
     const renderFrame = (source) => {
       if (!source) return;
       
@@ -86,44 +86,45 @@ async function startRecording(data) {
 
       if (!sourceWidth || !sourceHeight) return;
       
-      // === NEW APPROACH: Use captured content dimensions directly ===
-      // Exclude DevTools UI from the source
-      const devToolsTopBar = 75;    // pixels to skip at top (DevTools toolbar)
-      const devToolsBottomBar = 50; // pixels to skip at bottom
-      
-      // The "content" area we actually want to capture
-      const contentW = sourceWidth;  // Use full width
-      const contentH = sourceHeight - devToolsTopBar - devToolsBottomBar;
-      const contentStartX = 0;
-      const contentStartY = devToolsTopBar;
-      
-      // Frame dimensions adapt to content
-      const statusBarH = 44;  // iOS status bar height in pixels
+      // === USE DEVTOOLS DIMENSIONS (from message) ===
+      // screenLogicalW and screenLogicalH come from the popup (e.g., 430x932)
+      const statusBarH = 44;  // iOS status bar height
       const bezelPx = showFrame ? 20 : 0;
       const radiusPx = showFrame ? 45 : 0;
       
-      // Screen = content dimensions
-      const screenW = contentW;
-      const screenH = contentH + statusBarH;  // Add status bar height
+      // Screen dimensions from DevTools
+      const screenW = screenLogicalW;
+      const screenH = screenLogicalH;
       
       // Frame = screen + bezels
       const frameW = screenW + (bezelPx * 2);
       const frameH = screenH + (bezelPx * 2);
       
-      // Resize canvas if needed (only on first frame to avoid flicker)
+      // Content area (screen minus status bar)
+      const contentH = screenH - statusBarH;
+      
+      // Find the viewport in the source (it's centered)
+      // The viewport in the capture should match screenLogicalW x screenLogicalH
+      const viewportInSourceW = screenLogicalW;
+      const viewportInSourceH = screenLogicalH;
+      const viewportStartX = Math.max(0, (sourceWidth - viewportInSourceW) / 2);
+      const viewportStartY = Math.max(0, (sourceHeight - viewportInSourceH) / 2);
+      
+      // Resize canvas to match frame (only once)
       if (!window._canvasResized) {
         processCanvas.width = (Math.ceil(frameW) + 1) & ~1;
         processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
         window._canvasResized = true;
-        console.log('=== FRAME ADAPTS TO CONTENT ===');
-        console.log('Content:', contentW, 'x', contentH);
-        console.log('Screen (content + statusBar):', screenW, 'x', screenH);
-        console.log('Frame (screen + bezels):', frameW, 'x', frameH);
+        console.log('=== USING DEVTOOLS DIMENSIONS ===');
+        console.log('DevTools viewport:', screenLogicalW, 'x', screenLogicalH);
+        console.log('Source:', sourceWidth, 'x', sourceHeight);
+        console.log('Viewport in source starts at:', viewportStartX, ',', viewportStartY);
+        console.log('Frame:', frameW, 'x', frameH);
         console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
       }
       
-      // Sample background color from top center of content
-      colorCtx.drawImage(source, contentW / 2, contentStartY, 1, 1, 0, 0, 1, 1);
+      // Sample background color from top center of viewport
+      colorCtx.drawImage(source, viewportStartX + viewportInSourceW/2, viewportStartY, 1, 1, 0, 0, 1, 1);
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
@@ -197,11 +198,13 @@ async function startRecording(data) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw the content BELOW the status bar
+      // Draw the viewport from source, positioned below status bar
+      // Source: the centered viewport area in the capture
+      // Destination: below the status bar, filling the content area
       ctx.drawImage(
         source, 
-        contentStartX, contentStartY, contentW, contentH,  // source: content area
-        0, statusBarH, screenW, contentH                   // destination: below status bar
+        viewportStartX, viewportStartY + statusBarH, viewportInSourceW, contentH,  // source: viewport (skip status bar area)
+        0, statusBarH, screenW, contentH                                            // destination: below status bar
       );
       
       // --- Barra de Estado (Status Bar icons) ---

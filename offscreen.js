@@ -204,13 +204,15 @@ async function startRecording(data) {
         // Use negative x to stick out to the left
         // Increased protrusion to 3px (was 2px) to ensure visibility
         roundRect(ctx, -3, 160, 4, 35, 1.5); // Volume Up
+        ctx.fill();
         roundRect(ctx, -3, 210, 4, 35, 1.5); // Volume Down
+        ctx.fill();
         roundRect(ctx, -3, 100, 4, 20, 1.5); // Mute switch
+        ctx.fill();
         
         // Right side button (Power/Lock)
         // Use frameW - 1 to stick out to the right (3px protrusion)
         roundRect(ctx, frameW - 1, 180, 4, 60, 1.5); // Power button
-        
         ctx.fill();
         
         // --- Bisel Negro Interno (Thinner for elegance) ---

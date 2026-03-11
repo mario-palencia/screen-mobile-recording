@@ -195,12 +195,14 @@ async function startRecording(data) {
         
         // Left side buttons (Volume)
         // Adjusted positions to be more subtle and aligned
-        roundRect(ctx, 0, 160, 3, 35, 1.5); // Volume Up
-        roundRect(ctx, 0, 210, 3, 35, 1.5); // Volume Down
-        roundRect(ctx, 0, 100, 3, 20, 1.5); // Mute switch
+        // Use negative x to stick out to the left
+        roundRect(ctx, -2, 160, 4, 35, 1.5); // Volume Up
+        roundRect(ctx, -2, 210, 4, 35, 1.5); // Volume Down
+        roundRect(ctx, -2, 100, 4, 20, 1.5); // Mute switch
         
         // Right side button (Power/Lock)
-        roundRect(ctx, frameW - 3, 180, 3, 60, 1.5); // Power button
+        // Use frameW - 2 to stick out to the right
+        roundRect(ctx, frameW - 2, 180, 4, 60, 1.5); // Power button
         
         ctx.fill();
         

@@ -88,8 +88,8 @@ async function startRecording(data) {
       
       // === USE DEVTOOLS DIMENSIONS (from message) ===
       const statusBarH = 44;  // iOS status bar height
-      const bezelPx = showFrame ? 22 : 0; // Slightly thicker bezel
-      const radiusPx = showFrame ? 60 : 0; // More rounded corners (was 45)
+      const bezelPx = showFrame ? 25 : 0; // Thicker total bezel to accommodate frame + inner border
+      const radiusPx = showFrame ? 58 : 0; // Rounded corners matching iPhone 13/14 Pro style
       
       // Screen dimensions from DevTools (e.g., 430x932)
       // WE WANT TO SHOW FULL CONTENT + STATUS BAR
@@ -170,30 +170,33 @@ async function startRecording(data) {
 
       // --- Botones Laterales (Silver - Shiny) ---
       if (showFrame) {
-        ctx.fillStyle = '#E0E0E0'; // Lighter silver for buttons
-        roundRect(ctx, -2, 100, 6, 20, 2);
-        roundRect(ctx, -2, 140, 6, 45, 2);
-        roundRect(ctx, -2, 200, 6, 45, 2);
-        roundRect(ctx, frameW - 4, 160, 6, 70, 2);
+        // Draw buttons slightly inset so they are visible within canvas
+        ctx.fillStyle = '#E0E0E0'; 
+        roundRect(ctx, 0, 100, 4, 20, 2);
+        roundRect(ctx, 0, 140, 4, 45, 2);
+        roundRect(ctx, 0, 200, 4, 45, 2);
+        roundRect(ctx, frameW - 4, 160, 4, 70, 2);
         ctx.fill();
         
-        // --- Marco Exterior (Chasis Metálico Silver - Shiny) ---
+        // --- Marco Exterior (Chasis Metálico Silver - Light Blueish/White) ---
         const grad = ctx.createLinearGradient(0, 0, frameW, 0);
-        // More complex gradient for "shiny" look
-        grad.addColorStop(0.0, '#B8B8B8'); // Darker edge
-        grad.addColorStop(0.04, '#FFFFFF'); // Sharp highlight (glint)
-        grad.addColorStop(0.1, '#E8E8E8');
-        grad.addColorStop(0.5, '#F5F5F7'); // Center shine (slightly cool white)
-        grad.addColorStop(0.9, '#E8E8E8');
-        grad.addColorStop(0.96, '#FFFFFF'); // Sharp highlight (glint)
-        grad.addColorStop(1.0, '#B8B8B8'); // Darker edge
+        // Very light silver/blueish-white gradient to match reference
+        grad.addColorStop(0.0, '#C0C6CD'); // Shadow edge
+        grad.addColorStop(0.05, '#FFFFFF'); // Highlight
+        grad.addColorStop(0.15, '#E3E8ED'); // Main body (light blue-grey)
+        grad.addColorStop(0.5, '#F0F4F8'); // Center light
+        grad.addColorStop(0.85, '#E3E8ED'); // Main body
+        grad.addColorStop(0.95, '#FFFFFF'); // Highlight
+        grad.addColorStop(1.0, '#C0C6CD'); // Shadow edge
         
         ctx.fillStyle = grad;
+        // Draw frame slightly smaller than canvas to show buttons if needed, or just full
         roundRect(ctx, 0, 0, frameW, frameH, radiusPx + bezelPx/2); 
         ctx.fill();
         
         // --- Bisel Negro Interno (Thicker for realism) ---
-        const rimWidth = 4.0;
+        // Reference shows a distinct black border inside the metal frame
+        const rimWidth = 6.0; // Thicker metal band
         ctx.fillStyle = '#000000'; 
         roundRect(ctx, rimWidth, rimWidth, frameW - (rimWidth * 2), frameH - (rimWidth * 2), radiusPx); 
         ctx.fill();

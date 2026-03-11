@@ -88,8 +88,8 @@ async function startRecording(data) {
       
       // === USE DEVTOOLS DIMENSIONS (from message) ===
       const statusBarH = 44;  // iOS status bar height
-      const bezelPx = showFrame ? 25 : 0; // Thicker total bezel to accommodate frame + inner border
-      const radiusPx = showFrame ? 58 : 0; // Rounded corners matching iPhone 13/14 Pro style
+      const bezelPx = showFrame ? 16 : 0; // Thinner total bezel (was 25)
+      const radiusPx = showFrame ? 68 : 0; // Even more rounded corners (was 58)
       
       // Screen dimensions from DevTools (e.g., 430x932)
       // WE WANT TO SHOW FULL CONTENT + STATUS BAR
@@ -194,9 +194,9 @@ async function startRecording(data) {
         roundRect(ctx, 0, 0, frameW, frameH, radiusPx + bezelPx/2); 
         ctx.fill();
         
-        // --- Bisel Negro Interno (Thicker for realism) ---
+        // --- Bisel Negro Interno (Thinner for elegance) ---
         // Reference shows a distinct black border inside the metal frame
-        const rimWidth = 6.0; // Thicker metal band
+        const rimWidth = 3.5; // Thinner metal band (was 6.0)
         ctx.fillStyle = '#000000'; 
         roundRect(ctx, rimWidth, rimWidth, frameW - (rimWidth * 2), frameH - (rimWidth * 2), radiusPx); 
         ctx.fill();

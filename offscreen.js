@@ -133,7 +133,7 @@ async function startRecording(data) {
       }
       
       // Resize canvas to match frame (only once)
-      const buttonPadding = 5; // Extra space for side buttons
+      const buttonPadding = 8; // Increased padding to ensure buttons are not clipped
       if (!window._canvasResized) {
         processCanvas.width = (Math.ceil(frameW + (buttonPadding * 2)) + 1) & ~1;
         processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
@@ -202,13 +202,14 @@ async function startRecording(data) {
         // Left side buttons (Volume)
         // Adjusted positions to be more subtle and aligned
         // Use negative x to stick out to the left
-        roundRect(ctx, -2, 160, 4, 35, 1.5); // Volume Up
-        roundRect(ctx, -2, 210, 4, 35, 1.5); // Volume Down
-        roundRect(ctx, -2, 100, 4, 20, 1.5); // Mute switch
+        // Increased protrusion to 3px (was 2px) to ensure visibility
+        roundRect(ctx, -3, 160, 4, 35, 1.5); // Volume Up
+        roundRect(ctx, -3, 210, 4, 35, 1.5); // Volume Down
+        roundRect(ctx, -3, 100, 4, 20, 1.5); // Mute switch
         
         // Right side button (Power/Lock)
-        // Use frameW - 2 to stick out to the right
-        roundRect(ctx, frameW - 2, 180, 4, 60, 1.5); // Power button
+        // Use frameW - 1 to stick out to the right (3px protrusion)
+        roundRect(ctx, frameW - 1, 180, 4, 60, 1.5); // Power button
         
         ctx.fill();
         

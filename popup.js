@@ -106,6 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
   screenshotBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
+    // Show visual feedback
+    screenshotBtn.style.opacity = '0.5';
+    screenshotBtn.querySelector('span').textContent = 'Capturing...';
+    
     chrome.runtime.sendMessage({ 
       type: 'TAKE_SCREENSHOT_REQUEST',
       tabId: tab.id,
@@ -114,10 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
       bgStyle: bgStyleSelect.value
     });
     
-    // Close popup after a short delay to ensure message is sent
+    // Reset button after a delay (popup may close before this)
     setTimeout(() => {
-      window.close();
-    }, 100);
+      screenshotBtn.style.opacity = '1';
+      screenshotBtn.querySelector('span').textContent = 'Screenshot';
+    }, 1000);
   });
 
   startBtn.addEventListener('click', async () => {

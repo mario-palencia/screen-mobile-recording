@@ -5,6 +5,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     startRecording(message.data);
   } else if (message.type === 'STOP_RECORDING') {
     stopRecording();
+  } else if (message.type === 'PROCESS_SCREENSHOT') {
+    processScreenshot(message.data);
   }
 });
 
@@ -657,9 +659,6 @@ function performCleanup() {
   if (animationId) clearInterval(animationId);
   if (stream) stream.getTracks().forEach(track => track.stop());
   if (canvasStream) canvasStream.getTracks().forEach(track => track.stop());
-  // We need to stop the tracks of any other streams created manually
-  // This is a bit of a leak if we don't track them, but for now the GC should handle it eventually 
-  // or we can add them to a list.
   
   if (sourceVideo) sourceVideo.srcObject = null;
   
@@ -668,4 +667,236 @@ function performCleanup() {
   
   recorders = [];
   cleanupTimeout = null;
+}
+
+async function processScreenshot(data) {
+  const { screenshotUrl, width, height, devicePixelRatio, showNotch, showFrame, bgStyle } = data;
+  
+  console.log('Processing screenshot in offscreen document');
+  
+  try {
+    const img = new Image();
+    img.src = screenshotUrl;
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    });
+
+    const canvas = new OffscreenCanvas(1, 1);
+    const ctx = canvas.getContext('2d', { alpha: true });
+    
+    let dpr = devicePixelRatio || 1;
+    const screenLogicalW = width;
+    const screenLogicalH = height;
+    
+    const bezelPx = showFrame ? 16 : 0;
+    const radiusPx = showFrame ? 68 : 0;
+    const buttonPadding = showFrame ? 8 : 0;
+    
+    const frameLogicalW = screenLogicalW + (bezelPx * 2) + (buttonPadding * 2);
+    const frameLogicalH = screenLogicalH + (bezelPx * 2);
+    
+    canvas.width = Math.ceil(frameLogicalW * dpr);
+    canvas.height = Math.ceil(frameLogicalH * dpr);
+    
+    const scale = dpr;
+    const frameW = frameLogicalW * scale;
+    const frameH = frameLogicalH * scale;
+    const screenW = screenLogicalW * scale;
+    const screenH = screenLogicalH * scale;
+    const bezelSize = bezelPx * scale;
+    const radius = radiusPx * scale;
+    const btnPad = buttonPadding * scale;
+
+    function roundRect(ctx, x, y, w, h, r) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Sample nav color
+    const colorCanvas = new OffscreenCanvas(1, 1);
+    const colorCtx = colorCanvas.getContext('2d');
+    const imgW = img.naturalWidth;
+    const imgH = img.naturalHeight;
+    colorCtx.drawImage(img, imgW / 2, 20, 1, 1, 0, 0, 1, 1);
+    const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
+    const navColor = `rgb(${r}, ${g}, ${b})`;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const iconColor = brightness > 128 ? '#000000' : '#FFFFFF';
+
+    // Draw frame
+    if (showFrame) {
+      ctx.fillStyle = '#C0C0C8';
+      roundRect(ctx, btnPad - 3, 180 * scale, 4 * scale, 47 * scale, 1.5 * scale);
+      ctx.fill();
+      roundRect(ctx, btnPad - 3, 242 * scale, 4 * scale, 47 * scale, 1.5 * scale);
+      ctx.fill();
+      roundRect(ctx, btnPad + frameW - bezelSize * 2 - btnPad - 1, 180 * scale, 4 * scale, 63 * scale, 1.5 * scale);
+      ctx.fill();
+
+      const grad = ctx.createLinearGradient(btnPad, 0, btnPad + frameW - btnPad * 2, 0);
+      grad.addColorStop(0, '#A8A8B0');
+      grad.addColorStop(0.03, '#E8E8EC');
+      grad.addColorStop(0.15, '#D8D8DC');
+      grad.addColorStop(0.85, '#D8D8DC');
+      grad.addColorStop(0.97, '#E8E8EC');
+      grad.addColorStop(1, '#A8A8B0');
+      
+      ctx.fillStyle = grad;
+      roundRect(ctx, btnPad, 0, frameW - btnPad * 2, frameH, radius + bezelSize / 2);
+      ctx.fill();
+      
+      const rimWidth = 3.5 * scale;
+      ctx.fillStyle = '#000000';
+      roundRect(ctx, btnPad + rimWidth, rimWidth, frameW - btnPad * 2 - rimWidth * 2, frameH - rimWidth * 2, radius);
+      ctx.fill();
+    }
+
+    // Draw screen content
+    ctx.save();
+    ctx.translate(btnPad + bezelSize, bezelSize);
+    const innerRadius = radius - (showFrame ? (bezelSize - 3.5 * scale) : 0);
+    roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
+    ctx.clip();
+    
+    const statusBarH = 50 * scale;
+    ctx.fillStyle = navColor;
+    ctx.fillRect(0, 0, screenW, statusBarH);
+    
+    const contentH = screenH - statusBarH;
+    const marginFactor = 1.0;
+    const srcW = imgW * marginFactor;
+    const srcH = imgH * marginFactor;
+    const srcX = (imgW - srcW) / 2;
+    const srcY = (imgH - srcH) / 2;
+    const targetRatio = screenW / contentH;
+    const sourceRatio = srcW / srcH;
+    
+    let renderW, renderH, renderX, renderY;
+    if (sourceRatio > targetRatio) {
+      renderH = srcH;
+      renderW = renderH * targetRatio;
+    } else {
+      renderW = srcW;
+      renderH = renderW / targetRatio;
+    }
+    renderX = srcX + (srcW - renderW) / 2;
+    renderY = srcY + (srcH - renderH) / 2;
+    
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, renderX, renderY, renderW, renderH, 0, statusBarH, screenW, contentH);
+    
+    // Status bar items
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const textY = statusBarH * 0.65;
+    
+    ctx.fillStyle = iconColor;
+    ctx.font = `600 ${15 * scale}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(timeStr, 50 * scale, textY);
+    
+    const iconY = textY - 11 * scale;
+    const rightMargin = screenW - 25 * scale;
+    
+    // Battery
+    ctx.strokeStyle = iconColor;
+    ctx.lineWidth = 2;
+    roundRect(ctx, rightMargin - 25 * scale, iconY, 22 * scale, 11 * scale, 3 * scale);
+    ctx.stroke();
+    ctx.fillStyle = iconColor;
+    roundRect(ctx, rightMargin - 23 * scale, iconY + 2 * scale, 18 * scale, 7 * scale, 2 * scale);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(rightMargin - 1 * scale, iconY + 5.5 * scale, 2.5 * scale, Math.PI * 0.5, Math.PI * 1.5, true);
+    ctx.fill();
+    
+    // WiFi
+    ctx.strokeStyle = iconColor;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    const wifiX = rightMargin - 55 * scale;
+    const wifiY = iconY - 2 * scale;
+    const wifiSize = 16 * scale;
+    ctx.beginPath();
+    ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize, wifiSize * 0.9, Math.PI * 1.25, Math.PI * 1.75);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize, wifiSize * 0.6, Math.PI * 1.25, Math.PI * 1.75);
+    ctx.stroke();
+    ctx.fillStyle = iconColor;
+    ctx.beginPath();
+    ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize * 0.9, wifiSize * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Signal bars
+    const sigX = rightMargin - 80 * scale;
+    const sigW = 17 * scale;
+    const sigH = 11 * scale;
+    const gap = sigW * 0.2;
+    const barW = (sigW - 3 * gap) / 4;
+    ctx.fillStyle = iconColor;
+    for (let i = 0; i < 4; i++) {
+      const barH = sigH * (0.4 + 0.2 * i);
+      roundRect(ctx, sigX + i * (barW + gap), iconY + (sigH - barH), barW, barH, 1);
+      ctx.fill();
+    }
+    
+    ctx.restore();
+
+    // Dynamic Island / Notch
+    if (showNotch) {
+      const notchW = screenW * 0.3;
+      const notchH = 35 * scale;
+      const notchX = btnPad + (frameW - btnPad * 2 - notchW) / 2;
+      const notchY = bezelSize + 12 * scale;
+      
+      ctx.fillStyle = '#000000';
+      roundRect(ctx, notchX, notchY, notchW, notchH, notchH / 2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#1A1A1A';
+      ctx.beginPath();
+      ctx.arc(notchX + notchW - 12 * scale, notchY + notchH / 2, 6 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Home Indicator
+    const hiW = screenW * 0.35;
+    const hiH = 5 * scale;
+    const hiX = btnPad + (frameW - btnPad * 2 - hiW) / 2;
+    const hiY = frameH - bezelSize - 8 * scale;
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    roundRect(ctx, hiX, hiY, hiW, hiH, hiH / 2);
+    ctx.fill();
+
+    // Export
+    const blob = await canvas.convertToBlob({ type: 'image/png' });
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result;
+      const filename = `mobile-screenshot-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.png`;
+      
+      chrome.runtime.sendMessage({
+        type: 'DOWNLOAD_RECORDING',
+        url: dataUrl,
+        filename: filename
+      });
+    };
+    reader.readAsDataURL(blob);
+
+  } catch (err) {
+    console.error('Error processing screenshot in offscreen:', err);
+  }
 }

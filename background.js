@@ -153,24 +153,36 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
     // 3. Get Media Stream ID OR Screenshot
     // Use captureVisibleTab for screenshots
     if (mode === 'screenshot') {
-      setTimeout(async () => {
+      try {
+        // Get the windowId from the tab
+        let windowId = chrome.windows.WINDOW_ID_CURRENT;
         try {
-          // Get the windowId from the tab
-          let windowId = chrome.windows.WINDOW_ID_CURRENT;
-          try {
-            const tab = await chrome.tabs.get(tabId);
-            if (tab && tab.windowId) {
-              windowId = tab.windowId;
-            }
-          } catch (e) {
-            console.warn('Could not get tab info', e);
+          const tab = await chrome.tabs.get(tabId);
+          if (tab && tab.windowId) {
+            windowId = tab.windowId;
           }
+        } catch (e) {
+          console.warn('Could not get tab info', e);
+        }
 
-          const screenshotUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
-          console.log('Screenshot captured, sending to content script');
-          
-          // Send to Content Script in the ACTIVE TAB
-          chrome.tabs.sendMessage(tabId, {
+        const screenshotUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
+        console.log('Screenshot captured, setting up offscreen document');
+        
+        // Setup offscreen document for processing
+        const existingContexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT']
+        });
+        
+        if (existingContexts.length > 0) {
+          await chrome.offscreen.closeDocument();
+        }
+        
+        await setupOffscreenDocument('offscreen.html');
+        
+        // Send screenshot to offscreen document for processing
+        setTimeout(() => {
+          chrome.runtime.sendMessage({
+            target: 'offscreen',
             type: 'PROCESS_SCREENSHOT',
             data: {
               screenshotUrl: screenshotUrl,
@@ -182,10 +194,10 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
               bgStyle: bgStyle
             }
           });
-        } catch (captureErr) {
-          console.error('Screenshot capture failed:', captureErr);
-        }
-      }, 100);
+        }, 100);
+      } catch (captureErr) {
+        console.error('Screenshot capture failed:', captureErr);
+      }
       return;
     }
 

@@ -55,12 +55,9 @@ async function startRecording(data) {
     let dpr = devicePixelRatio || 1;
     const screenLogicalW = width;
     const screenLogicalH = height;
-    const bezel = showFrame ? 20 : 0;
-    const cornerRadius = showFrame ? 55 : 0;
-    const homeIndicatorW = Math.round(screenLogicalW * 0.35);
-    const homeIndicatorH = Math.round(5 * (dpr/3));
-    const frameLogicalW = screenLogicalW + (bezel * 2);
-    const frameLogicalH = screenLogicalH + (bezel * 2);
+    const bezelLogical = showFrame ? 20 : 0;
+    const frameLogicalW = screenLogicalW + (bezelLogical * 2);
+    const frameLogicalH = screenLogicalH + (bezelLogical * 2);
   
     const statusDiv = document.getElementById('status');
     statusDiv.textContent = 'Starting recording...';

@@ -8,10 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const bgStyleSelect = document.getElementById('bg-style');
   const bgColorPicker = document.getElementById('bg-color-picker');
   const gifToggle = document.getElementById('gif-toggle');
-  const devtoolsToggle = document.getElementById('devtools-toggle');
   
   // Load saved settings
-  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'customBgColor', 'recordGif', 'openDevTools'], (result) => {
+  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'customBgColor', 'recordGif'], (result) => {
     if (result.showNotch !== undefined) {
       notchToggle.checked = result.showNotch;
     }
@@ -38,10 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     gifToggle.checked = result.recordGif !== undefined ? result.recordGif : true;
-    
-    if (result.openDevTools !== undefined) {
-      devtoolsToggle.checked = result.openDevTools;
-    }
   });
 
   // Save settings on change
@@ -88,10 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
   gifToggle.addEventListener('change', () => {
     chrome.storage.local.set({ recordGif: gifToggle.checked });
   });
-  
-  devtoolsToggle.addEventListener('change', () => {
-    chrome.storage.local.set({ openDevTools: devtoolsToggle.checked });
-  });
 
   // Check initial state
   chrome.runtime.sendMessage({ type: 'GET_RECORDING_STATE' }, (response) => {
@@ -117,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
       webmToggle.disabled = true;
       bgStyleSelect.disabled = true;
       gifToggle.disabled = true;
-      devtoolsToggle.disabled = true;
     } else {
       startBtnText.textContent = 'Start Recording';
       startBtn.classList.remove('recording');
@@ -132,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
       webmToggle.disabled = false;
       bgStyleSelect.disabled = false;
       gifToggle.disabled = false;
-      devtoolsToggle.disabled = false;
     }
   }
 

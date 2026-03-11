@@ -114,9 +114,9 @@ async function startRecording(data) {
       
       let srcX, srcY, srcW, srcH;
       
-      // Add margin (use slightly less of source to leave padding)
-      // Adjusted to 0.96 (4% total margin) to show more content width
-      const marginFactor = 0.96;
+      // Use full source (no extra margin) to match DevTools view exactly
+      // Master used 0.99, but 1.0 ensures we don't cut anything unnecessarily
+      const marginFactor = 1.0;
       
       if (sourceRatio > targetRatio) {
         // Source is wider - crop horizontally, scale to fit height

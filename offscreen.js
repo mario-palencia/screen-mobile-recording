@@ -89,17 +89,17 @@ async function startRecording(data) {
       if (!sourceWidth || !sourceHeight) return;
       
       // === USE DEVTOOLS DIMENSIONS (from message) ===
-      const statusBarH = 44;  // iOS status bar height
+      const statusBarH = showFrame ? 44 : 0;  // iOS status bar height - only when frame is shown
       const bezelPx = showFrame ? 16 : 0; // Thinner total bezel (was 25)
       const radiusPx = showFrame ? 68 : 0; // Even more rounded corners (was 58)
       
       // Screen dimensions from DevTools (e.g., 430x932)
-      // WE WANT TO SHOW FULL CONTENT + STATUS BAR
+      // WE WANT TO SHOW FULL CONTENT + STATUS BAR (only if frame is shown)
       // So effective screen height must be larger to accommodate status bar without covering content
       const screenW = screenLogicalW;
       const contentH = screenLogicalH; // The capture is the full content height
       
-      // New screen height = content height + status bar
+      // New screen height = content height + status bar (if frame shown)
       // This makes the device frame taller to fit everything without overlapping
       const screenH = contentH + statusBarH;
       
@@ -237,43 +237,47 @@ async function startRecording(data) {
       roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
       ctx.clip();
       
-      // 1. Dibujar Status Bar background (top of screen)
-      ctx.fillStyle = navColor;
-      ctx.fillRect(0, 0, screenW, statusBarH);
+      // 1. Dibujar Status Bar background (top of screen) - only when frame is shown
+      if (showFrame) {
+        ctx.fillStyle = navColor;
+        ctx.fillRect(0, 0, screenW, statusBarH);
+      }
       
-      // 2. Dibujar contenido capturado (debajo del status bar)
+      // 2. Dibujar contenido capturado (debajo del status bar si hay frame)
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw content filling the area BELOW status bar
+      // Draw content filling the area BELOW status bar (or full screen if no frame)
       ctx.drawImage(
         source, 
         srcX, srcY, srcW, srcH,           // source: cropped area
         0, statusBarH, screenW, contentH  // destination: below status bar, full content height
       );
       
-      // --- Barra de Estado (Status Bar icons) ---
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      
-      const textY = statusBarH * 0.7;
-      
-      ctx.fillStyle = iconColor;
-      ctx.font = `600 14px -apple-system, BlinkMacSystemFont, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(timeStr, 50, textY); 
-      
-      const iconY = textY - 10;
-      const rightMargin = screenW - 25;
-      
-      drawBattery(ctx, rightMargin - 25, iconY, 22, 11, iconColor);
-      drawWifi(ctx, rightMargin - 55, iconY - 2, 16, iconColor);
-      drawSignal(ctx, rightMargin - 80, iconY, 17, 11, iconColor);
+      // --- Barra de Estado (Status Bar icons) - only when frame is shown ---
+      if (showFrame) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        
+        const textY = statusBarH * 0.7;
+        
+        ctx.fillStyle = iconColor;
+        ctx.font = `600 14px -apple-system, BlinkMacSystemFont, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(timeStr, 50, textY); 
+        
+        const iconY = textY - 10;
+        const rightMargin = screenW - 25;
+        
+        drawBattery(ctx, rightMargin - 25, iconY, 22, 11, iconColor);
+        drawWifi(ctx, rightMargin - 55, iconY - 2, 16, iconColor);
+        drawSignal(ctx, rightMargin - 80, iconY, 17, 11, iconColor);
+      }
 
       ctx.restore();
       
-      // --- Dynamic Island / Notch ---
-      if (showNotch) {
+      // --- Dynamic Island / Notch - only when frame is shown ---
+      if (showFrame && showNotch) {
         const notchW = Math.min(screenW * 0.25, 120);  // Max 120px wide
         const notchH = 32;
         const notchX = (frameW - notchW) / 2;
@@ -289,15 +293,17 @@ async function startRecording(data) {
         ctx.fill();
       }
 
-      // --- Home Indicator ---
-      const hiW = Math.min(screenW * 0.35, 140);  // Max 140px wide
-      const hiH = 5;
-      const hiX = (frameW - hiW) / 2;
-      const hiY = frameH - bezelPx - 8;
-      
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      roundRect(ctx, hiX, hiY, hiW, hiH, hiH/2);
-      ctx.fill();
+      // --- Home Indicator - only when frame is shown ---
+      if (showFrame) {
+        const hiW = Math.min(screenW * 0.35, 140);  // Max 140px wide
+        const hiH = 5;
+        const hiX = (frameW - hiW) / 2;
+        const hiY = frameH - bezelPx - 8;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        roundRect(ctx, hiX, hiY, hiW, hiH, hiH/2);
+        ctx.fill();
+      }
 
       ctx.restore(); // Restore context to remove translation
     };

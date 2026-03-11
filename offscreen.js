@@ -162,11 +162,12 @@ async function startRecording(data) {
       ctx.globalAlpha = 1.0;
       ctx.globalCompositeOperation = 'source-over';
       
-      if (bgStyle && bgStyle !== 'transparent' && bgStyle !== 'transparent-force') {
+      // Background style only applies when frame is shown
+      if (showFrame && bgStyle && bgStyle !== 'transparent' && bgStyle !== 'transparent-force') {
           ctx.fillStyle = bgStyle;
           ctx.fillRect(0, 0, processCanvas.width, processCanvas.height);
       } else {
-          if (bgStyle === 'transparent-force') {
+          if (showFrame && bgStyle === 'transparent-force') {
               ctx.globalCompositeOperation = 'destination-out';
               ctx.fillStyle = '#000000';
               ctx.fillRect(0, 0, processCanvas.width, processCanvas.height);

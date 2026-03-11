@@ -88,8 +88,8 @@ async function startRecording(data) {
       
       // === USE DEVTOOLS DIMENSIONS (from message) ===
       const statusBarH = 44;  // iOS status bar height
-      const bezelPx = showFrame ? 20 : 0;
-      const radiusPx = showFrame ? 45 : 0;
+      const bezelPx = showFrame ? 22 : 0; // Slightly thicker bezel
+      const radiusPx = showFrame ? 60 : 0; // More rounded corners (was 45)
       
       // Screen dimensions from DevTools (e.g., 430x932)
       // WE WANT TO SHOW FULL CONTENT + STATUS BAR
@@ -168,30 +168,32 @@ async function startRecording(data) {
           }
       }
 
-      // --- Botones Laterales (Silver) ---
+      // --- Botones Laterales (Silver - Shiny) ---
       if (showFrame) {
-        ctx.fillStyle = '#D1D1D6';
+        ctx.fillStyle = '#E0E0E0'; // Lighter silver for buttons
         roundRect(ctx, -2, 100, 6, 20, 2);
         roundRect(ctx, -2, 140, 6, 45, 2);
         roundRect(ctx, -2, 200, 6, 45, 2);
         roundRect(ctx, frameW - 4, 160, 6, 70, 2);
         ctx.fill();
         
-        // --- Marco Exterior (Chasis Metálico Silver) ---
+        // --- Marco Exterior (Chasis Metálico Silver - Shiny) ---
         const grad = ctx.createLinearGradient(0, 0, frameW, 0);
-        grad.addColorStop(0, '#8E8E93');
-        grad.addColorStop(0.05, '#E5E5EA');
-        grad.addColorStop(0.2, '#D1D1D6');
-        grad.addColorStop(0.8, '#D1D1D6');
-        grad.addColorStop(0.95, '#E5E5EA');
-        grad.addColorStop(1, '#8E8E93');
+        // More complex gradient for "shiny" look
+        grad.addColorStop(0.0, '#B8B8B8'); // Darker edge
+        grad.addColorStop(0.04, '#FFFFFF'); // Sharp highlight (glint)
+        grad.addColorStop(0.1, '#E8E8E8');
+        grad.addColorStop(0.5, '#F5F5F7'); // Center shine (slightly cool white)
+        grad.addColorStop(0.9, '#E8E8E8');
+        grad.addColorStop(0.96, '#FFFFFF'); // Sharp highlight (glint)
+        grad.addColorStop(1.0, '#B8B8B8'); // Darker edge
         
         ctx.fillStyle = grad;
         roundRect(ctx, 0, 0, frameW, frameH, radiusPx + bezelPx/2); 
         ctx.fill();
         
-        // --- Bisel Negro Interno ---
-        const rimWidth = 3.5;
+        // --- Bisel Negro Interno (Thicker for realism) ---
+        const rimWidth = 4.0;
         ctx.fillStyle = '#000000'; 
         roundRect(ctx, rimWidth, rimWidth, frameW - (rimWidth * 2), frameH - (rimWidth * 2), radiusPx); 
         ctx.fill();

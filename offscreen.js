@@ -785,9 +785,13 @@ async function processScreenshot(data) {
     roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
     ctx.clip();
     
-    const statusBarH = 50 * scale;
-    ctx.fillStyle = navColor;
-    ctx.fillRect(0, 0, screenW, statusBarH);
+    // Status bar only when frame is shown (it's part of the frame)
+    const statusBarH = showFrame ? 50 * scale : 0;
+    
+    if (showFrame) {
+      ctx.fillStyle = navColor;
+      ctx.fillRect(0, 0, screenW, statusBarH);
+    }
     
     const contentH = screenH - statusBarH;
     const marginFactor = 1.0;
@@ -813,66 +817,68 @@ async function processScreenshot(data) {
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, renderX, renderY, renderW, renderH, 0, statusBarH, screenW, contentH);
     
-    // Status bar items
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    const textY = statusBarH * 0.65;
-    
-    ctx.fillStyle = iconColor;
-    ctx.font = `600 ${15 * scale}px -apple-system, BlinkMacSystemFont, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(timeStr, 50 * scale, textY);
-    
-    const iconY = textY - 11 * scale;
-    const rightMargin = screenW - 25 * scale;
-    
-    // Battery
-    ctx.strokeStyle = iconColor;
-    ctx.lineWidth = 2;
-    roundRect(ctx, rightMargin - 25 * scale, iconY, 22 * scale, 11 * scale, 3 * scale);
-    ctx.stroke();
-    ctx.fillStyle = iconColor;
-    roundRect(ctx, rightMargin - 23 * scale, iconY + 2 * scale, 18 * scale, 7 * scale, 2 * scale);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(rightMargin - 1 * scale, iconY + 5.5 * scale, 2.5 * scale, Math.PI * 0.5, Math.PI * 1.5, true);
-    ctx.fill();
-    
-    // WiFi
-    ctx.strokeStyle = iconColor;
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    const wifiX = rightMargin - 55 * scale;
-    const wifiY = iconY - 2 * scale;
-    const wifiSize = 16 * scale;
-    ctx.beginPath();
-    ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize, wifiSize * 0.9, Math.PI * 1.25, Math.PI * 1.75);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize, wifiSize * 0.6, Math.PI * 1.25, Math.PI * 1.75);
-    ctx.stroke();
-    ctx.fillStyle = iconColor;
-    ctx.beginPath();
-    ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize * 0.9, wifiSize * 0.15, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Signal bars
-    const sigX = rightMargin - 80 * scale;
-    const sigW = 17 * scale;
-    const sigH = 11 * scale;
-    const gap = sigW * 0.2;
-    const barW = (sigW - 3 * gap) / 4;
-    ctx.fillStyle = iconColor;
-    for (let i = 0; i < 4; i++) {
-      const barH = sigH * (0.4 + 0.2 * i);
-      roundRect(ctx, sigX + i * (barW + gap), iconY + (sigH - barH), barW, barH, 1);
+    // Status bar items - only when frame is shown
+    if (showFrame) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      const textY = statusBarH * 0.65;
+      
+      ctx.fillStyle = iconColor;
+      ctx.font = `600 ${15 * scale}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(timeStr, 50 * scale, textY);
+      
+      const iconY = textY - 11 * scale;
+      const rightMargin = screenW - 25 * scale;
+      
+      // Battery
+      ctx.strokeStyle = iconColor;
+      ctx.lineWidth = 2;
+      roundRect(ctx, rightMargin - 25 * scale, iconY, 22 * scale, 11 * scale, 3 * scale);
+      ctx.stroke();
+      ctx.fillStyle = iconColor;
+      roundRect(ctx, rightMargin - 23 * scale, iconY + 2 * scale, 18 * scale, 7 * scale, 2 * scale);
       ctx.fill();
+      ctx.beginPath();
+      ctx.arc(rightMargin - 1 * scale, iconY + 5.5 * scale, 2.5 * scale, Math.PI * 0.5, Math.PI * 1.5, true);
+      ctx.fill();
+      
+      // WiFi
+      ctx.strokeStyle = iconColor;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      const wifiX = rightMargin - 55 * scale;
+      const wifiY = iconY - 2 * scale;
+      const wifiSize = 16 * scale;
+      ctx.beginPath();
+      ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize, wifiSize * 0.9, Math.PI * 1.25, Math.PI * 1.75);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize, wifiSize * 0.6, Math.PI * 1.25, Math.PI * 1.75);
+      ctx.stroke();
+      ctx.fillStyle = iconColor;
+      ctx.beginPath();
+      ctx.arc(wifiX + wifiSize / 2, wifiY + wifiSize * 0.9, wifiSize * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Signal bars
+      const sigX = rightMargin - 80 * scale;
+      const sigW = 17 * scale;
+      const sigH = 11 * scale;
+      const gap = sigW * 0.2;
+      const barW = (sigW - 3 * gap) / 4;
+      ctx.fillStyle = iconColor;
+      for (let i = 0; i < 4; i++) {
+        const barH = sigH * (0.4 + 0.2 * i);
+        roundRect(ctx, sigX + i * (barW + gap), iconY + (sigH - barH), barW, barH, 1);
+        ctx.fill();
+      }
     }
     
     ctx.restore();
 
-    // Dynamic Island / Notch
-    if (showNotch) {
+    // Dynamic Island / Notch - only when frame is shown
+    if (showFrame && showNotch) {
       const notchW = screenW * 0.3;
       const notchH = 35 * scale;
       const notchX = btnPad + (frameW - btnPad * 2 - notchW) / 2;
@@ -888,15 +894,17 @@ async function processScreenshot(data) {
       ctx.fill();
     }
 
-    // Home Indicator
-    const hiW = screenW * 0.35;
-    const hiH = 5 * scale;
-    const hiX = btnPad + (frameW - btnPad * 2 - hiW) / 2;
-    const hiY = frameH - bezelSize - 8 * scale;
-    
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    roundRect(ctx, hiX, hiY, hiW, hiH, hiH / 2);
-    ctx.fill();
+    // Home Indicator - only when frame is shown
+    if (showFrame) {
+      const hiW = screenW * 0.35;
+      const hiH = 5 * scale;
+      const hiX = btnPad + (frameW - btnPad * 2 - hiW) / 2;
+      const hiY = frameH - bezelSize - 8 * scale;
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      roundRect(ctx, hiX, hiY, hiW, hiH, hiH / 2);
+      ctx.fill();
+    }
 
     // Export
     const blob = await canvas.convertToBlob({ type: 'image/png' });

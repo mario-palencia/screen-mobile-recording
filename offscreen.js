@@ -176,10 +176,16 @@ async function startRecording(data) {
       if (showFrame) {
         // Draw buttons slightly inset so they are visible within canvas
         ctx.fillStyle = '#E0E0E0'; 
-        roundRect(ctx, 0, 100, 4, 20, 2);
-        roundRect(ctx, 0, 140, 4, 45, 2);
-        roundRect(ctx, 0, 200, 4, 45, 2);
-        roundRect(ctx, frameW - 4, 160, 4, 70, 2);
+        
+        // Left side buttons (Volume)
+        // Adjusted positions to be more subtle and aligned
+        roundRect(ctx, 0, 160, 3, 35, 1.5); // Volume Up
+        roundRect(ctx, 0, 210, 3, 35, 1.5); // Volume Down
+        roundRect(ctx, 0, 100, 3, 20, 1.5); // Mute switch
+        
+        // Right side button (Power/Lock)
+        roundRect(ctx, frameW - 3, 180, 3, 60, 1.5); // Power button
+        
         ctx.fill();
         
         // --- Marco Exterior (Chasis Metálico Silver - Light Blueish/White) ---

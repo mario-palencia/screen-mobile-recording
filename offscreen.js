@@ -133,14 +133,16 @@ async function startRecording(data) {
       }
       
       // Resize canvas to match frame (only once)
+      const buttonPadding = 5; // Extra space for side buttons
       if (!window._canvasResized) {
-        processCanvas.width = (Math.ceil(frameW) + 1) & ~1;
+        processCanvas.width = (Math.ceil(frameW + (buttonPadding * 2)) + 1) & ~1;
         processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
         window._canvasResized = true;
         console.log('=== SCALE TO FIT (EXTENDED FRAME) ===');
         console.log('DevTools content:', screenW, 'x', contentH);
         console.log('Screen (content + status):', screenW, 'x', screenH);
         console.log('Frame:', frameW, 'x', frameH);
+        console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
       }
       
       // Sample background color from top center
@@ -171,6 +173,10 @@ async function startRecording(data) {
               ctx.clearRect(0, 0, processCanvas.width, processCanvas.height);
           }
       }
+
+      ctx.save();
+      // Center the frame horizontally in the slightly wider canvas
+      ctx.translate(buttonPadding, 0);
 
       // --- Botones Laterales (Silver - Shiny) ---
       if (showFrame) {
@@ -286,6 +292,8 @@ async function startRecording(data) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       roundRect(ctx, hiX, hiY, hiW, hiH, hiH/2);
       ctx.fill();
+
+      ctx.restore(); // Restore context to remove translation
     };
 
   try {

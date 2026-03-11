@@ -7,9 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const webmToggle = document.getElementById('webm-toggle');
   const bgStyleSelect = document.getElementById('bg-style');
   const gifToggle = document.getElementById('gif-toggle');
+  const devtoolsToggle = document.getElementById('devtools-toggle');
   
   // Load saved settings
-  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'recordGif'], (result) => {
+  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'recordGif', 'openDevTools'], (result) => {
     if (result.showNotch !== undefined) {
       notchToggle.checked = result.showNotch;
     }
@@ -24,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
         bgStyleSelect.value = result.bgStyle;
     }
     gifToggle.checked = result.recordGif !== undefined ? result.recordGif : true;
+    
+    if (result.openDevTools !== undefined) {
+      devtoolsToggle.checked = result.openDevTools;
+    }
   });
 
   // Save settings on change
@@ -51,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ recordGif: gifToggle.checked });
   });
   
+  devtoolsToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ openDevTools: devtoolsToggle.checked });
+  });
+
   // Check initial state
   chrome.runtime.sendMessage({ type: 'GET_RECORDING_STATE' }, (response) => {
     if (response && response.isRecording) {
@@ -59,30 +68,38 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function updateUI(recording) {
+    const startBtnText = startBtn.querySelector('span');
+    
     if (recording) {
-      startBtn.textContent = 'Stop Recording';
-      startBtn.style.background = '#ff4757';
+      startBtnText.textContent = 'Stop Recording';
+      startBtn.classList.add('recording');
       
       screenshotBtn.disabled = true;
       screenshotBtn.style.opacity = 0.5;
+      
+      // Disable settings while recording
       notchToggle.disabled = true; 
       frameToggle.disabled = true;
       mp4Toggle.disabled = true;
       webmToggle.disabled = true;
       bgStyleSelect.disabled = true;
       gifToggle.disabled = true;
+      devtoolsToggle.disabled = true;
     } else {
-      startBtn.textContent = 'Start Recording';
-      startBtn.style.background = '#00d4aa';
+      startBtnText.textContent = 'Start Recording';
+      startBtn.classList.remove('recording');
       
       screenshotBtn.disabled = false;
       screenshotBtn.style.opacity = 1;
+      
+      // Enable settings
       notchToggle.disabled = false;
       frameToggle.disabled = false;
       mp4Toggle.disabled = false;
       webmToggle.disabled = false;
       bgStyleSelect.disabled = false;
       gifToggle.disabled = false;
+      devtoolsToggle.disabled = false;
     }
   }
 
@@ -125,6 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
           gifMaxWidth: 400,
           gifFps: 5
         });
+        
+        // Handle DevTools auto-open if enabled
+        if (devtoolsToggle.checked) {
+            console.log('DevTools auto-open requested (placeholder)');
+            // Note: Programmatically opening DevTools requires specific API usage or user gesture
+            // which might be limited. For now, we store the preference.
+        }
+        
         updateUI(true);
       } else {
 

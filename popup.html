@@ -17,7 +17,6 @@
         </a>
         <h1 class="title">
           <svg class="title-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
-            <!-- New White Video Icon -->
             <path fill="#ffffff" d="M128 128C92.7 128 64 156.7 64 192L64 448C64 483.3 92.7 512 128 512L384 512C419.3 512 448 483.3 448 448L448 192C448 156.7 419.3 128 384 128L128 128zM496 400L569.5 458.8C573.7 462.2 578.9 464 584.3 464C597.4 464 608 453.4 608 440.3L608 199.7C608 186.6 597.4 176 584.3 176C578.9 176 573.7 177.8 569.5 181.2L496 240L496 400z"/>
           </svg>
           Screen Mobile Recording
@@ -26,50 +25,96 @@
     </header>
 
     <main class="content">
-      <div class="recording-controls">
-         <button id="start-btn" class="check-btn" style="font-size: 16px; padding: 12px 24px;">Start Recording</button>
-         <button id="screenshot-btn" class="check-btn" style="font-size: 16px; padding: 12px 24px; margin-top: 10px; background: #0984e3;">Take Screenshot</button>
-         
-         <div class="options-container">
-           <input type="checkbox" id="notch-toggle" checked>
-           <label for="notch-toggle">Dynamic Island / Notch</label>
-         </div>
-         
-         <div class="options-container" style="margin-top: 10px;">
-           <input type="checkbox" id="frame-toggle" checked>
-           <label for="frame-toggle">Show Device Frame</label>
-         </div>
+      
+      <!-- Main Actions Grid -->
+      <div class="action-grid">
+        <button id="start-btn" class="action-card primary">
+          <div class="icon-circle">
+            <div class="record-dot"></div>
+          </div>
+          <span>Start Recording</span>
+        </button>
+        
+        <button id="screenshot-btn" class="action-card secondary">
+          <div class="icon-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </div>
+          <span>Screenshot</span>
+        </button>
+      </div>
 
-         <div class="options-container" style="margin-top: 15px; flex-direction: column; align-items: flex-start; gap: 8px;">
-           <label style="opacity: 0.8; font-size: 13px;">Output Formats:</label>
-           <div style="display: flex; gap: 15px;">
-             <div style="display: flex; align-items: center; gap: 6px;">
-               <input type="checkbox" id="mp4-toggle" checked>
-               <label for="mp4-toggle">MP4</label>
-             </div>
-             <div style="display: flex; align-items: center; gap: 6px;">
-               <input type="checkbox" id="webm-toggle" checked>
-               <label for="webm-toggle">WebM (Transparent)</label>
-             </div>
-           </div>
-         </div>
+      <!-- Settings Sections -->
+      <div class="settings-container">
+        
+        <!-- Device Appearance -->
+        <div class="settings-group">
+          <div class="group-header">DEVICE APPEARANCE</div>
+          
+          <div class="setting-row">
+            <label>Show Device Frame</label>
+            <label class="switch">
+              <input type="checkbox" id="frame-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
 
-         <div class="options-container" style="margin-top: 15px; flex-direction: column; align-items: flex-start; gap: 8px;">
-            <label style="opacity: 0.8; font-size: 13px;">Background Style:</label>
-            <select id="bg-style" style="width: 100%; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
-                <option style="background: #333; color: white;" value="transparent">Transparent (WebM only)</option>
-                <option style="background: #333; color: white;" value="transparent-force">Transparent (Force)</option>
-                <option style="background: #333; color: white;" value="#00FF00">Green Screen</option>
-                <option style="background: #333; color: white;" value="#0000FF">Blue Screen</option>
-                <option style="background: #333; color: white;" value="#FFFFFF">White</option>
-                <option style="background: #333; color: white;" value="#000000">Black</option>
+          <div class="setting-row">
+            <label>Dynamic Island / Notch</label>
+            <label class="switch">
+              <input type="checkbox" id="notch-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Output Formats -->
+        <div class="settings-group">
+          <div class="group-header">OUTPUT FORMATS</div>
+          
+          <div class="formats-row">
+            <label class="checkbox-pill">
+              <input type="checkbox" id="mp4-toggle" checked>
+              <span>MP4</span>
+            </label>
+            <label class="checkbox-pill">
+              <input type="checkbox" id="webm-toggle" checked>
+              <span>WebM</span>
+            </label>
+            <label class="checkbox-pill">
+              <input type="checkbox" id="gif-toggle" checked>
+              <span>GIF (Slides)</span>
+            </label>
+          </div>
+
+          <div class="setting-row" style="margin-top: 12px;">
+            <label>Background Style</label>
+            <select id="bg-style" class="styled-select">
+              <option value="transparent">Transparent (WebM only)</option>
+              <option value="transparent-force">Transparent (Force)</option>
+              <option value="#00FF00">Green Screen</option>
+              <option value="#0000FF">Blue Screen</option>
+              <option value="#FFFFFF">White</option>
+              <option value="#000000">Black</option>
             </select>
-         </div>
+          </div>
+        </div>
 
-         <div class="options-container" style="margin-top: 15px;">
-           <input type="checkbox" id="gif-toggle" checked>
-           <label for="gif-toggle">Also create GIF (400px, 5 fps, low size for Slides)</label>
-         </div>
+        <!-- Behavior -->
+        <div class="settings-group">
+          <div class="group-header">BEHAVIOR</div>
+          
+          <div class="setting-row">
+            <label>Open DevTools by default</label>
+            <label class="switch">
+              <input type="checkbox" id="devtools-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
       </div>
     </main>
 

@@ -8,18 +8,19 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background: #1a1d2e;
   color: #ffffff;
-  width: 400px; /* Kept width for this extension */
+  width: 380px;
   max-height: 600px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100vh;
 }
 
-/* Header Styles from Reference */
+/* Header */
 .header {
   padding: 16px;
   background: #1a1d2e;
@@ -30,7 +31,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0; /* Adjusted since we don't have the input row */
 }
 
 .fever-logo-header {
@@ -39,7 +39,6 @@ body {
   color: #ffffff;
   opacity: 0.95;
   transition: opacity 0.3s;
-  flex-shrink: 0;
 }
 
 .fever-logo-header:hover {
@@ -60,59 +59,239 @@ body {
   width: 20px;
   height: 20px;
   fill: #ffffff;
-  flex-shrink: 0;
 }
 
 /* Main Content */
 .content {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: #252836;
-  padding: 40px 20px; /* Add breathing room */
-}
-
-.check-btn {
-  padding: 8px 16px;
-  background: #00d4aa;
-  border: none;
-  border-radius: 6px;
-  color: #0a1f2e;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.3s;
-  white-space: nowrap;
-}
-
-.check-btn:hover {
-  background: #00b894;
-}
-
-/* Options */
-.options-container {
-  margin-top: 20px;
+  padding: 20px;
   display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Action Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
   gap: 10px;
 }
 
-input[type="checkbox"] {
-  accent-color: #00d4aa;
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+.action-card.primary {
+  background: #2d3246;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-label {
-  user-select: none;
+.action-card.primary:hover {
+  background: #363c54;
+  transform: translateY(-2px);
+}
+
+.action-card.primary.recording {
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid #ff4757;
+  color: #ff4757;
+}
+
+.action-card.primary.recording .record-dot {
+  background: #ff4757;
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+}
+
+.action-card.secondary {
+  background: #2d3246;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-card.secondary:hover {
+  background: #363c54;
+  transform: translateY(-2px);
+}
+
+.action-card span {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.record-dot {
+  width: 14px;
+  height: 14px;
+  background: #ff4757;
+  border-radius: 50%;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Settings Container */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-group {
+  background: #2d3246;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.setting-row:last-child {
+  margin-bottom: 0;
+}
+
+.setting-row label {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Footer Styles from Reference */
+/* Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .3s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #00d4aa;
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+/* Formats Row */
+.formats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkbox-pill {
+  position: relative;
+  cursor: pointer;
+}
+
+.checkbox-pill input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkbox-pill span {
+  display: block;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.checkbox-pill input:checked + span {
+  background: rgba(0, 212, 170, 0.15);
+  color: #00d4aa;
+  border-color: rgba(0, 212, 170, 0.3);
+}
+
+/* Styled Select */
+.styled-select {
+  width: 140px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.styled-select option {
+  background: #2d3246;
+  color: white;
+}
+
+/* Footer */
 .footer {
   padding: 12px 16px;
   background: #252836;

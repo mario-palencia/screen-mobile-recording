@@ -480,16 +480,64 @@ async function convertToGif(frames) {
     console.log('gifenc loaded, processing', frames.length, 'frames at', gifCanvasWidth, 'x', gifCanvasHeight);
     const { GIFEncoder, quantize, applyPalette } = window.gifenc;
     const gif = GIFEncoder();
-    const delayMs = Math.round(1000 / gifFps);
-    let palette = null;
-    for (let i = 0; i < frames.length; i++) {
-      const data = frames[i];
-      if (!palette) {
-        palette = quantize(data, 256);
+    const baseDelayMs = Math.round(1000 / gifFps);
+    
+    // --- Frame Deduplication Logic ---
+    let previousData = null;
+    let accumulatedDelay = 0;
+    
+    // Helper to compare two Uint8Arrays (pixel data)
+    // Returns true if identical
+    const framesAreEqual = (a, b) => {
+      if (a.length !== b.length) return false;
+      // Strict equality check for lossless deduplication
+      // For lossy/fuzzy check, we'd need to iterate and allow a threshold
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false;
       }
+      return true;
+    };
+
+    // Helper to write a frame
+    const writeBufferedFrame = (data, delay) => {
+      // Quantize and write
+      // Note: Re-quantizing every frame might be slow if palette changes.
+      // For screencasts, a global palette or re-using palette is often better,
+      // but here we stick to per-frame for simplicity unless we want global optimization.
+      // Let's try to reuse palette if possible or just quantize per frame.
+      const palette = quantize(data, 256);
       const index = applyPalette(data, palette);
-      gif.writeFrame(index, gifCanvasWidth, gifCanvasHeight, { palette, delay: delayMs });
+      gif.writeFrame(index, gifCanvasWidth, gifCanvasHeight, { palette, delay });
+    };
+
+    for (let i = 0; i < frames.length; i++) {
+      const currentData = frames[i];
+      
+      if (previousData === null) {
+        // First frame
+        previousData = currentData;
+        accumulatedDelay = baseDelayMs;
+      } else {
+        // Compare current with previous
+        if (framesAreEqual(previousData, currentData)) {
+          // Identical frame: skip writing, just add to delay
+          accumulatedDelay += baseDelayMs;
+        } else {
+          // Different frame: write the PREVIOUS frame with its accumulated delay
+          writeBufferedFrame(previousData, accumulatedDelay);
+          
+          // Reset for new frame
+          previousData = currentData;
+          accumulatedDelay = baseDelayMs;
+        }
+      }
     }
+    
+    // Write the final buffered frame
+    if (previousData) {
+      writeBufferedFrame(previousData, accumulatedDelay);
+    }
+    
     gif.finish();
     const bytes = gif.bytes();
     const gifBlob = new Blob([bytes], { type: 'image/gif' });

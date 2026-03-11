@@ -132,9 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const isRecording = response ? response.isRecording : false;
       
       if (!isRecording) {
-        // Update UI immediately before sending message
-        updateUI(true);
-        
         // Start
         chrome.runtime.sendMessage({ 
           type: 'START_RECORDING_REQUEST',
@@ -149,18 +146,16 @@ document.addEventListener('DOMContentLoaded', () => {
           gifFps: 5
         });
         
-        // Handle DevTools auto-open if enabled
-        if (devtoolsToggle.checked) {
-            console.log('DevTools auto-open requested (placeholder)');
-        }
+        // Close popup after starting recording
+        window.close();
       } else {
-        // Update UI immediately before sending message
-        updateUI(false);
-        
         // Stop
         chrome.runtime.sendMessage({ 
           type: 'STOP_RECORDING_REQUEST'
         });
+        
+        // Close popup after stopping recording
+        window.close();
       }
     });
   });

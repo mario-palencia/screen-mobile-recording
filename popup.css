@@ -92,14 +92,16 @@ body {
 }
 
 .action-card.primary {
-  background: #2d3246;
+  background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
 }
 
 .action-card.primary:hover {
-  background: #363c54;
+  background: linear-gradient(135deg, #00b894 0%, #009d7a 100%);
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 212, 170, 0.4);
 }
 
 .action-card.primary.recording {
@@ -115,14 +117,16 @@ body {
 }
 
 .action-card.secondary {
-  background: #2d3246;
+  background: linear-gradient(135deg, #0984e3 0%, #0770c7 100%);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
+  box-shadow: 0 4px 12px rgba(9, 132, 227, 0.3);
 }
 
 .action-card.secondary:hover {
-  background: #363c54;
+  background: linear-gradient(135deg, #0770c7 0%, #055aa8 100%);
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(9, 132, 227, 0.4);
 }
 
 .action-card span {
@@ -242,12 +246,14 @@ input:checked + .slider:before {
 .formats-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .checkbox-pill {
   position: relative;
   cursor: pointer;
+  flex: 1;
+  min-width: 80px;
 }
 
 .checkbox-pill input {
@@ -258,19 +264,21 @@ input:checked + .slider:before {
 
 .checkbox-pill span {
   display: block;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  border: 1px solid transparent;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s;
+  text-align: center;
 }
 
 .checkbox-pill input:checked + span {
-  background: rgba(0, 212, 170, 0.15);
+  background: rgba(0, 212, 170, 0.2);
   color: #00d4aa;
-  border-color: rgba(0, 212, 170, 0.3);
+  border-color: #00d4aa;
 }
 
 /* Styled Select */

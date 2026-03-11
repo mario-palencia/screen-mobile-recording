@@ -113,6 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
       showFrame: frameToggle.checked,
       bgStyle: bgStyleSelect.value
     });
+    
+    // Close popup after a short delay to ensure message is sent
+    setTimeout(() => {
+      window.close();
+    }, 100);
   });
 
   startBtn.addEventListener('click', async () => {

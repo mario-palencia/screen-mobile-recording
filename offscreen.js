@@ -557,6 +557,14 @@ async function convertToGif(frames) {
     chrome.runtime.sendMessage({ type: 'GIF_CONVERSION_ERROR', error: err.message });
   }
   if (statusDiv) statusDiv.textContent = 'Idle';
+  
+  // Clear frames after conversion
+  gifFrames = [];
+  
+  // If no video recorders are active, cleanup now
+  if (recorders.length === 0) {
+    performCleanup();
+  }
 }
 
 function createAndStartRecorder(stream, mimeType, extension) {
@@ -634,6 +642,12 @@ function stopRecording() {
     console.log('GIF frame capture stopped, total frames:', gifFrames.length);
   }
   
+  // If GIF was requested, convert frames first
+  if (gifRecordRequested && gifFrames.length > 0) {
+    console.log('Converting GIF...');
+    convertToGif(gifFrames);
+  }
+  
   if (recorders.length > 0) {
     recorders.forEach(recorder => {
       if (recorder.state !== 'inactive') {
@@ -641,8 +655,11 @@ function stopRecording() {
       }
     });
   } else {
-    // If no recorders (maybe error occurred), just cleanup immediately
-    performCleanup();
+    // If no video recorders but we have GIF frames, wait for GIF conversion
+    // Otherwise cleanup immediately
+    if (!gifRecordRequested || gifFrames.length === 0) {
+      performCleanup();
+    }
   }
 }
 
@@ -883,18 +900,17 @@ async function processScreenshot(data) {
 
     // Export
     const blob = await canvas.convertToBlob({ type: 'image/png' });
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result;
-      const filename = `mobile-screenshot-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.png`;
-      
-      chrome.runtime.sendMessage({
-        type: 'DOWNLOAD_RECORDING',
-        url: dataUrl,
-        filename: filename
-      });
-    };
-    reader.readAsDataURL(blob);
+    const url = URL.createObjectURL(blob);
+    const filename = `mobile-screenshot-${new Date().toISOString().replace(/:/g, '-').split('.')[0]}.png`;
+    
+    chrome.runtime.sendMessage({
+      type: 'DOWNLOAD_RECORDING',
+      url: url,
+      filename: filename
+    });
+    
+    // Revoke after download starts
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
 
   } catch (err) {
     console.error('Error processing screenshot in offscreen:', err);

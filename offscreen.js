@@ -135,14 +135,16 @@ async function startRecording(data) {
       }
       
       // Resize canvas to match frame (only once)
-      const buttonPadding = 8; // Increased padding to ensure buttons are not clipped
+      // Button padding only when frame is shown
+      const buttonPadding = showFrame ? 8 : 0;
       if (!window._canvasResized) {
         processCanvas.width = (Math.ceil(frameW + (buttonPadding * 2)) + 1) & ~1;
         processCanvas.height = (Math.ceil(frameH) + 1) & ~1;
         window._canvasResized = true;
-        console.log('=== SCALE TO FIT (EXTENDED FRAME) ===');
+        console.log('=== SCALE TO FIT ===');
+        console.log('showFrame:', showFrame);
         console.log('DevTools content:', screenW, 'x', contentH);
-        console.log('Screen (content + status):', screenW, 'x', screenH);
+        console.log('Screen:', screenW, 'x', screenH);
         console.log('Frame:', frameW, 'x', frameH);
         console.log('Canvas:', processCanvas.width, 'x', processCanvas.height);
       }
@@ -178,55 +180,36 @@ async function startRecording(data) {
       }
 
       ctx.save();
-      // Center the frame horizontally in the slightly wider canvas
+      // Center the frame horizontally in the slightly wider canvas (only when frame shown)
       ctx.translate(buttonPadding, 0);
 
-      // --- Botones Laterales (Silver - Shiny) ---
+      // --- Botones Laterales y Frame (Solo cuando showFrame está activo) ---
       if (showFrame) {
         // --- Marco Exterior (Chasis Metálico Silver - Light Blueish/White) ---
         const grad = ctx.createLinearGradient(0, 0, frameW, 0);
-        // Very light silver/blueish-white gradient to match reference
-        grad.addColorStop(0.0, '#C0C6CD'); // Shadow edge
-        grad.addColorStop(0.05, '#FFFFFF'); // Highlight
-        grad.addColorStop(0.15, '#E3E8ED'); // Main body (light blue-grey)
-        grad.addColorStop(0.5, '#F0F4F8'); // Center light
-        grad.addColorStop(0.85, '#E3E8ED'); // Main body
-        grad.addColorStop(0.95, '#FFFFFF'); // Highlight
-        grad.addColorStop(1.0, '#C0C6CD'); // Shadow edge
+        grad.addColorStop(0.0, '#C0C6CD');
+        grad.addColorStop(0.05, '#FFFFFF');
+        grad.addColorStop(0.15, '#E3E8ED');
+        grad.addColorStop(0.5, '#F0F4F8');
+        grad.addColorStop(0.85, '#E3E8ED');
+        grad.addColorStop(0.95, '#FFFFFF');
+        grad.addColorStop(1.0, '#C0C6CD');
         
         ctx.fillStyle = grad;
-        // Draw frame slightly smaller than canvas to show buttons if needed, or just full
         roundRect(ctx, 0, 0, frameW, frameH, radiusPx + bezelPx/2); 
         ctx.fill();
         
-        // Draw buttons AFTER frame so they sit on top/edge
+        // Draw buttons
         ctx.fillStyle = '#E0E0E0'; 
+        roundRect(ctx, -3, 180, 4, 47, 1.5); ctx.fill();
+        roundRect(ctx, -3, 242, 4, 47, 1.5); ctx.fill();
+        roundRect(ctx, frameW - 1, 180, 4, 63, 1.5); ctx.fill();
         
-        // Left side buttons (Volume)
-        // Adjusted positions to be more subtle and aligned
-        // Use negative x to stick out to the left
-        // Increased protrusion to 3px (was 2px) to ensure visibility
-        // Size: Increased by 5% (45 * 1.05 = 47px)
-        // Position: Lowered to align first button with Power button (y=180)
-        roundRect(ctx, -3, 180, 4, 47, 1.5); // Volume Up
-        ctx.fill();
-        roundRect(ctx, -3, 242, 4, 47, 1.5); // Volume Down (180 + 47 + 15px gap)
-        ctx.fill();
-        
-        // Right side button (Power/Lock)
-        // Use frameW - 1 to stick out to the right (3px protrusion)
-        // Size: Increased by 5% (60 * 1.05 = 63px)
-        roundRect(ctx, frameW - 1, 180, 4, 63, 1.5); // Power button
-        ctx.fill();
-        
-        // --- Bisel Negro Interno (Thinner for elegance) ---
-        // Reference shows a distinct black border inside the metal frame
-        const rimWidth = 3.5; // Thinner metal band (was 6.0)
+        // --- Bisel Negro Interno ---
+        const rimWidth = 3.5;
         ctx.fillStyle = '#000000'; 
         roundRect(ctx, rimWidth, rimWidth, frameW - (rimWidth * 2), frameH - (rimWidth * 2), radiusPx); 
         ctx.fill();
-      } else {
-        ctx.clearRect(0, 0, frameW, frameH);
       }
       
       // --- Pantalla ---
@@ -235,8 +218,10 @@ async function startRecording(data) {
       
       const innerRadius = radiusPx - (showFrame ? (bezelPx - 3.5) : 0); 
       
-      roundRect(ctx, 0, 0, screenW, screenH, showFrame ? innerRadius : 0);
-      ctx.clip();
+      if (showFrame) {
+        roundRect(ctx, 0, 0, screenW, screenH, innerRadius);
+        ctx.clip();
+      }
       
       // 1. Dibujar Status Bar background (top of screen) - only when frame is shown
       if (showFrame) {
@@ -244,15 +229,15 @@ async function startRecording(data) {
         ctx.fillRect(0, 0, screenW, statusBarH);
       }
       
-      // 2. Dibujar contenido capturado (debajo del status bar si hay frame)
+      // 2. Dibujar contenido capturado
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Draw content filling the area BELOW status bar (or full screen if no frame)
+      // Draw content - full screen when no frame, below status bar when frame
       ctx.drawImage(
         source, 
         srcX, srcY, srcW, srcH,           // source: cropped area
-        0, statusBarH, screenW, contentH  // destination: below status bar, full content height
+        0, statusBarH, screenW, contentH  // destination: statusBarH is 0 when no frame
       );
       
       // --- Barra de Estado (Status Bar icons) - only when frame is shown ---

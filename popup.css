@@ -283,7 +283,7 @@ input:checked + .slider:before {
 
 /* Styled Select */
 .styled-select {
-  width: 140px;
+  width: 110px;
   padding: 6px 10px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
@@ -297,6 +297,35 @@ input:checked + .slider:before {
 .styled-select option {
   background: #2d3246;
   color: white;
+}
+
+/* Background Style Container */
+.bg-style-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Color Picker */
+.color-picker {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  opacity: 0.5;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.color-picker:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.color-picker.active {
+  opacity: 1;
+  border-color: #00d4aa;
 }
 
 /* Footer */

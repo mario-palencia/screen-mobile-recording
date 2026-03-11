@@ -91,14 +91,17 @@
 
           <div class="setting-row" style="margin-top: 12px;">
             <label>Background Style</label>
-            <select id="bg-style" class="styled-select">
-              <option value="transparent">Transparent (WebM only)</option>
-              <option value="transparent-force">Transparent (Force)</option>
-              <option value="#00FF00">Green Screen</option>
-              <option value="#0000FF">Blue Screen</option>
-              <option value="#FFFFFF">White</option>
-              <option value="#000000">Black</option>
-            </select>
+            <div class="bg-style-container">
+              <select id="bg-style" class="styled-select">
+                <option value="transparent">Transparent</option>
+                <option value="#00FF00">Green Screen</option>
+                <option value="#0000FF">Blue Screen</option>
+                <option value="#FFFFFF">White</option>
+                <option value="#000000">Black</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input type="color" id="bg-color-picker" class="color-picker" value="#FF0000" title="Pick custom color">
+            </div>
           </div>
         </div>
 

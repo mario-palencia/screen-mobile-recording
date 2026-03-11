@@ -165,18 +165,11 @@ async function startRecording(data) {
       ctx.globalCompositeOperation = 'source-over';
       
       // Background style only applies when frame is shown
-      if (showFrame && bgStyle && bgStyle !== 'transparent' && bgStyle !== 'transparent-force') {
+      if (showFrame && bgStyle && bgStyle !== 'transparent') {
           ctx.fillStyle = bgStyle;
           ctx.fillRect(0, 0, processCanvas.width, processCanvas.height);
       } else {
-          if (showFrame && bgStyle === 'transparent-force') {
-              ctx.globalCompositeOperation = 'destination-out';
-              ctx.fillStyle = '#000000';
-              ctx.fillRect(0, 0, processCanvas.width, processCanvas.height);
-              ctx.globalCompositeOperation = 'source-over';
-          } else {
-              ctx.clearRect(0, 0, processCanvas.width, processCanvas.height);
-          }
+          ctx.clearRect(0, 0, processCanvas.width, processCanvas.height);
       }
 
       ctx.save();

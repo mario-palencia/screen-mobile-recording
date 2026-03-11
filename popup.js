@@ -6,24 +6,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const mp4Toggle = document.getElementById('mp4-toggle');
   const webmToggle = document.getElementById('webm-toggle');
   const bgStyleSelect = document.getElementById('bg-style');
+  const bgColorPicker = document.getElementById('bg-color-picker');
   const gifToggle = document.getElementById('gif-toggle');
   const devtoolsToggle = document.getElementById('devtools-toggle');
   
   // Load saved settings
-  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'recordGif', 'openDevTools'], (result) => {
+  chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'customBgColor', 'recordGif', 'openDevTools'], (result) => {
     if (result.showNotch !== undefined) {
       notchToggle.checked = result.showNotch;
     }
     if (result.showFrame !== undefined) {
       frameToggle.checked = result.showFrame;
     }
-    // Default to true if not set
     mp4Toggle.checked = result.recordMP4 !== undefined ? result.recordMP4 : true;
     webmToggle.checked = result.recordWebM !== undefined ? result.recordWebM : true;
     
-    if (result.bgStyle) {
-        bgStyleSelect.value = result.bgStyle;
+    if (result.customBgColor) {
+      bgColorPicker.value = result.customBgColor;
     }
+    
+    if (result.bgStyle) {
+      if (result.bgStyle === 'custom' || result.bgStyle.startsWith('#') && !['#00FF00', '#0000FF', '#FFFFFF', '#000000'].includes(result.bgStyle)) {
+        bgStyleSelect.value = 'custom';
+        bgColorPicker.classList.add('active');
+        if (result.bgStyle !== 'custom') {
+          bgColorPicker.value = result.bgStyle;
+        }
+      } else {
+        bgStyleSelect.value = result.bgStyle;
+      }
+    }
+    
     gifToggle.checked = result.recordGif !== undefined ? result.recordGif : true;
     
     if (result.openDevTools !== undefined) {
@@ -49,7 +62,27 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   bgStyleSelect.addEventListener('change', () => {
+    if (bgStyleSelect.value === 'custom') {
+      bgColorPicker.classList.add('active');
+      chrome.storage.local.set({ bgStyle: bgColorPicker.value });
+    } else {
+      bgColorPicker.classList.remove('active');
       chrome.storage.local.set({ bgStyle: bgStyleSelect.value });
+    }
+  });
+  
+  bgColorPicker.addEventListener('input', () => {
+    if (bgStyleSelect.value === 'custom') {
+      chrome.storage.local.set({ bgStyle: bgColorPicker.value, customBgColor: bgColorPicker.value });
+    }
+  });
+  
+  bgColorPicker.addEventListener('click', () => {
+    if (bgStyleSelect.value !== 'custom') {
+      bgStyleSelect.value = 'custom';
+      bgColorPicker.classList.add('active');
+      chrome.storage.local.set({ bgStyle: bgColorPicker.value });
+    }
   });
 
   gifToggle.addEventListener('change', () => {
@@ -103,6 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Helper to get the actual background style value
+  function getBackgroundStyle() {
+    if (bgStyleSelect.value === 'custom') {
+      return bgColorPicker.value;
+    }
+    return bgStyleSelect.value;
+  }
+
   screenshotBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
@@ -111,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabId: tab.id,
       showNotch: notchToggle.checked,
       showFrame: frameToggle.checked,
-      bgStyle: bgStyleSelect.value
+      bgStyle: getBackgroundStyle()
     });
     
     // Close popup immediately after sending message
@@ -140,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showFrame: frameToggle.checked,
           recordMP4: mp4Toggle.checked,
           recordWebM: webmToggle.checked,
-          bgStyle: bgStyleSelect.value,
+          bgStyle: getBackgroundStyle(),
           recordGif: gifToggle.checked,
           gifMaxWidth: 400,
           gifFps: 5

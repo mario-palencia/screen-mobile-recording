@@ -148,6 +148,10 @@ async function startRecording(data) {
       const [r, g, b] = colorCtx.getImageData(0, 0, 1, 1).data;
       const navColor = `rgb(${r}, ${g}, ${b})`;
       
+      // Calculate brightness to determine icon color (black or white)
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      const iconColor = brightness > 128 ? '#000000' : '#FFFFFF';
+      
       const ctx = processContext;
       
       // Clear the entire canvas
@@ -234,7 +238,7 @@ async function startRecording(data) {
       
       const textY = statusBarH * 0.7;
       
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = iconColor;
       ctx.font = `600 14px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(timeStr, 50, textY); 
@@ -242,9 +246,9 @@ async function startRecording(data) {
       const iconY = textY - 10;
       const rightMargin = screenW - 25;
       
-      drawBattery(ctx, rightMargin - 25, iconY, 22, 11);
-      drawWifi(ctx, rightMargin - 55, iconY - 2, 16);
-      drawSignal(ctx, rightMargin - 80, iconY, 17, 11);
+      drawBattery(ctx, rightMargin - 25, iconY, 22, 11, iconColor);
+      drawWifi(ctx, rightMargin - 55, iconY - 2, 16, iconColor);
+      drawSignal(ctx, rightMargin - 80, iconY, 17, 11, iconColor);
 
       ctx.restore();
       
@@ -316,19 +320,19 @@ async function startRecording(data) {
       ctx.closePath();
     }
 
-    function drawSignal(ctx, x, y, w, h) {
+    function drawSignal(ctx, x, y, w, h, color) {
         const gap = w * 0.2;
         const barW = (w - (3 * gap)) / 4;
         for (let i = 0; i < 4; i++) {
             const barH = h * (0.4 + (0.2 * i));
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = color;
             roundRect(ctx, x + (i * (barW + gap)), y + (h - barH), barW, barH, 1);
             ctx.fill();
         }
     }
 
-    function drawWifi(ctx, x, y, size) {
-        ctx.strokeStyle = '#FFFFFF';
+    function drawWifi(ctx, x, y, size, color) {
+        ctx.strokeStyle = color;
         ctx.lineWidth = 2.5;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -337,21 +341,21 @@ async function startRecording(data) {
         ctx.beginPath();
         ctx.arc(x + size/2, y + size, size * 0.6, Math.PI * 1.25, Math.PI * 1.75);
         ctx.stroke();
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(x + size/2, y + size * 0.9, size * 0.15, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    function drawBattery(ctx, x, y, w, h) {
-        ctx.strokeStyle = '#FFFFFF';
+    function drawBattery(ctx, x, y, w, h, color) {
+        ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         roundRect(ctx, x, y, w, h, h/3);
         ctx.stroke();
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = color;
         roundRect(ctx, x + 2, y + 2, w - 4, h - 4, h/4);
         ctx.fill();
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(x + w + 2, y + h/2, h/4, Math.PI * 0.5, Math.PI * 1.5, true);
         ctx.fill();

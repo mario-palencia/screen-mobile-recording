@@ -203,11 +203,10 @@ async function startRecording(data) {
         // Adjusted positions to be more subtle and aligned
         // Use negative x to stick out to the left
         // Increased protrusion to 3px (was 2px) to ensure visibility
-        roundRect(ctx, -3, 160, 4, 35, 1.5); // Volume Up
+        // Size: 75% of Power button (60 * 0.75 = 45px)
+        roundRect(ctx, -3, 140, 4, 45, 1.5); // Volume Up
         ctx.fill();
-        roundRect(ctx, -3, 210, 4, 35, 1.5); // Volume Down
-        ctx.fill();
-        roundRect(ctx, -3, 100, 4, 20, 1.5); // Mute switch
+        roundRect(ctx, -3, 200, 4, 45, 1.5); // Volume Down
         ctx.fill();
         
         // Right side button (Power/Lock)

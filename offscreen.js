@@ -203,15 +203,17 @@ async function startRecording(data) {
         // Adjusted positions to be more subtle and aligned
         // Use negative x to stick out to the left
         // Increased protrusion to 3px (was 2px) to ensure visibility
-        // Size: 75% of Power button (60 * 0.75 = 45px)
-        roundRect(ctx, -3, 140, 4, 45, 1.5); // Volume Up
+        // Size: Increased by 5% (45 * 1.05 = 47px)
+        // Position: Lowered to align first button with Power button (y=180)
+        roundRect(ctx, -3, 180, 4, 47, 1.5); // Volume Up
         ctx.fill();
-        roundRect(ctx, -3, 200, 4, 45, 1.5); // Volume Down
+        roundRect(ctx, -3, 242, 4, 47, 1.5); // Volume Down (180 + 47 + 15px gap)
         ctx.fill();
         
         // Right side button (Power/Lock)
         // Use frameW - 1 to stick out to the right (3px protrusion)
-        roundRect(ctx, frameW - 1, 180, 4, 60, 1.5); // Power button
+        // Size: Increased by 5% (60 * 1.05 = 63px)
+        roundRect(ctx, frameW - 1, 180, 4, 63, 1.5); // Power button
         ctx.fill();
         
         // --- Bisel Negro Interno (Thinner for elegance) ---

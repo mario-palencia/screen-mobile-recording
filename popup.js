@@ -106,10 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
   screenshotBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    // Show visual feedback
-    screenshotBtn.style.opacity = '0.5';
-    screenshotBtn.querySelector('span').textContent = 'Capturing...';
-    
     chrome.runtime.sendMessage({ 
       type: 'TAKE_SCREENSHOT_REQUEST',
       tabId: tab.id,
@@ -118,19 +114,16 @@ document.addEventListener('DOMContentLoaded', () => {
       bgStyle: bgStyleSelect.value
     });
     
-    // Reset button after a delay (popup may close before this)
-    setTimeout(() => {
-      screenshotBtn.style.opacity = '1';
-      screenshotBtn.querySelector('span').textContent = 'Screenshot';
-    }, 1000);
+    // Close popup immediately after sending message
+    window.close();
   });
 
   startBtn.addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    // Validate at least one format is selected
-    if (!mp4Toggle.checked && !webmToggle.checked) {
-      alert('Please select at least one output format (MP4 or WebM).');
+    // Validate at least one format is selected (MP4, WebM, or GIF)
+    if (!mp4Toggle.checked && !webmToggle.checked && !gifToggle.checked) {
+      alert('Please select at least one output format (MP4, WebM, or GIF).');
       return;
     }
 

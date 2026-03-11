@@ -174,20 +174,6 @@ async function startRecording(data) {
 
       // --- Botones Laterales (Silver - Shiny) ---
       if (showFrame) {
-        // Draw buttons slightly inset so they are visible within canvas
-        ctx.fillStyle = '#E0E0E0'; 
-        
-        // Left side buttons (Volume)
-        // Adjusted positions to be more subtle and aligned
-        roundRect(ctx, 0, 160, 3, 35, 1.5); // Volume Up
-        roundRect(ctx, 0, 210, 3, 35, 1.5); // Volume Down
-        roundRect(ctx, 0, 100, 3, 20, 1.5); // Mute switch
-        
-        // Right side button (Power/Lock)
-        roundRect(ctx, frameW - 3, 180, 3, 60, 1.5); // Power button
-        
-        ctx.fill();
-        
         // --- Marco Exterior (Chasis Metálico Silver - Light Blueish/White) ---
         const grad = ctx.createLinearGradient(0, 0, frameW, 0);
         // Very light silver/blueish-white gradient to match reference
@@ -202,6 +188,20 @@ async function startRecording(data) {
         ctx.fillStyle = grad;
         // Draw frame slightly smaller than canvas to show buttons if needed, or just full
         roundRect(ctx, 0, 0, frameW, frameH, radiusPx + bezelPx/2); 
+        ctx.fill();
+        
+        // Draw buttons AFTER frame so they sit on top/edge
+        ctx.fillStyle = '#E0E0E0'; 
+        
+        // Left side buttons (Volume)
+        // Adjusted positions to be more subtle and aligned
+        roundRect(ctx, 0, 160, 3, 35, 1.5); // Volume Up
+        roundRect(ctx, 0, 210, 3, 35, 1.5); // Volume Down
+        roundRect(ctx, 0, 100, 3, 20, 1.5); // Mute switch
+        
+        // Right side button (Power/Lock)
+        roundRect(ctx, frameW - 3, 180, 3, 60, 1.5); // Power button
+        
         ctx.fill();
         
         // --- Bisel Negro Interno (Thinner for elegance) ---

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Screen Mobile Recording",
+  "name": "Mobile Screen Recorder: Frame, GIF & MP4",
   "version": "1.0.0",
-  "description": "Record your screen in mobile view",
+  "description": "Record browser in mobile view with iPhone frame. Auto-export MP4, WebM or GIF. Works in Incognito. For app demos & presentations.",
   "permissions": [
     "activeTab",
     "storage",
@@ -11,9 +11,6 @@
     "offscreen",
     "downloads",
     "system.display"
-  ],
-  "host_permissions": [
-    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup.html",

@@ -691,9 +691,11 @@ async function processScreenshot(data) {
     const bezelPx = showFrame ? 16 : 0;
     const radiusPx = showFrame ? 68 : 0;
     const buttonPadding = showFrame ? 8 : 0;
+    const statusBarLogical = showFrame ? 44 : 0;
     
+    const screenLogicalHWithStatus = screenLogicalH + statusBarLogical;
     const frameLogicalW = screenLogicalW + (bezelPx * 2) + (buttonPadding * 2);
-    const frameLogicalH = screenLogicalH + (bezelPx * 2);
+    const frameLogicalH = screenLogicalHWithStatus + (bezelPx * 2);
     
     canvas.width = Math.ceil(frameLogicalW * dpr);
     canvas.height = Math.ceil(frameLogicalH * dpr);
@@ -702,7 +704,7 @@ async function processScreenshot(data) {
     const frameW = frameLogicalW * scale;
     const frameH = frameLogicalH * scale;
     const screenW = screenLogicalW * scale;
-    const screenH = screenLogicalH * scale;
+    const screenH = screenLogicalHWithStatus * scale;
     const bezelSize = bezelPx * scale;
     const radius = radiusPx * scale;
     const btnPad = buttonPadding * scale;
@@ -734,14 +736,7 @@ async function processScreenshot(data) {
 
     // Draw frame
     if (showFrame) {
-      ctx.fillStyle = '#C0C0C8';
-      roundRect(ctx, btnPad - 3, 180 * scale, 4 * scale, 47 * scale, 1.5 * scale);
-      ctx.fill();
-      roundRect(ctx, btnPad - 3, 242 * scale, 4 * scale, 47 * scale, 1.5 * scale);
-      ctx.fill();
-      roundRect(ctx, btnPad + frameW - bezelSize * 2 - btnPad - 1, 180 * scale, 4 * scale, 63 * scale, 1.5 * scale);
-      ctx.fill();
-
+      // Frame gradient
       const grad = ctx.createLinearGradient(btnPad, 0, btnPad + frameW - btnPad * 2, 0);
       grad.addColorStop(0, '#A8A8B0');
       grad.addColorStop(0.03, '#E8E8EC');
@@ -754,6 +749,16 @@ async function processScreenshot(data) {
       roundRect(ctx, btnPad, 0, frameW - btnPad * 2, frameH, radius + bezelSize / 2);
       ctx.fill();
       
+      // Side buttons (drawn after frame so they appear on top)
+      ctx.fillStyle = '#E0E0E0';
+      roundRect(ctx, btnPad - 3 * scale, 180 * scale, 4 * scale, 47 * scale, 1.5 * scale);
+      ctx.fill();
+      roundRect(ctx, btnPad - 3 * scale, 242 * scale, 4 * scale, 47 * scale, 1.5 * scale);
+      ctx.fill();
+      roundRect(ctx, btnPad + frameW - btnPad * 2 - 1 * scale, 180 * scale, 4 * scale, 63 * scale, 1.5 * scale);
+      ctx.fill();
+      
+      // Black rim
       const rimWidth = 3.5 * scale;
       ctx.fillStyle = '#000000';
       roundRect(ctx, btnPad + rimWidth, rimWidth, frameW - btnPad * 2 - rimWidth * 2, frameH - rimWidth * 2, radius);
@@ -768,7 +773,7 @@ async function processScreenshot(data) {
     ctx.clip();
     
     // Status bar only when frame is shown (it's part of the frame)
-    const statusBarH = showFrame ? 50 * scale : 0;
+    const statusBarH = showFrame ? statusBarLogical * scale : 0;
     
     if (showFrame) {
       ctx.fillStyle = navColor;

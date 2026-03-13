@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mobile Screen Recorder: Frame, GIF & MP4",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Record browser in mobile view with iPhone frame. Auto-export MP4, WebM or GIF. Works in Incognito. For app demos & presentations.",
   "permissions": [
     "activeTab",

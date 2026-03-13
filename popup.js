@@ -8,6 +8,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const bgStyleSelect = document.getElementById('bg-style');
   const bgColorPicker = document.getElementById('bg-color-picker');
   const gifToggle = document.getElementById('gif-toggle');
+  const errorBanner = document.getElementById('error-banner');
+  const errorMessage = document.getElementById('error-message');
+  const errorDismiss = document.getElementById('error-dismiss');
+  
+  // Check for recent errors and display them
+  chrome.storage.local.get(['lastError', 'lastErrorTime'], (result) => {
+    if (result.lastError && result.lastErrorTime) {
+      const errorAge = Date.now() - result.lastErrorTime;
+      // Show error if it's less than 30 seconds old
+      if (errorAge < 30000) {
+        errorMessage.textContent = result.lastError;
+        errorBanner.style.display = 'flex';
+        // Clear the error from storage
+        chrome.storage.local.remove(['lastError', 'lastErrorTime']);
+      }
+    }
+  });
+  
+  // Dismiss error button
+  errorDismiss.addEventListener('click', () => {
+    errorBanner.style.display = 'none';
+  });
   
   // Load saved settings
   chrome.storage.local.get(['showNotch', 'showFrame', 'recordMP4', 'recordWebM', 'bgStyle', 'customBgColor', 'recordGif'], (result) => {

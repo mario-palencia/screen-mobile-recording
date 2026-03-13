@@ -272,6 +272,12 @@ function showProtectedPageError() {
   chrome.action.setBadgeText({ text: '!' });
   chrome.action.setBadgeBackgroundColor({ color: '#FF6B6B' });
   
+  // Save error message to storage for popup to display
+  chrome.storage.local.set({ 
+    lastError: 'This page is protected by Chrome and cannot be recorded or captured. Try on a regular website.',
+    lastErrorTime: Date.now()
+  });
+  
   // Clear badge after 3 seconds
   setTimeout(() => {
     chrome.action.setBadgeText({ text: '' });

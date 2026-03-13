@@ -48,9 +48,18 @@ async function startRecording(data) {
     const { streamId, width, height, devicePixelRatio, showNotch, showFrame, recordMP4, recordWebM, bgStyle, mode, recordGif, gifMaxWidth: gifW, gifFps: gifF } = data;
     console.log('Starting capture with bgStyle:', bgStyle, 'Mode:', mode, 'recordGif:', recordGif);
     gifRecordRequested = recordGif === true;
-    gifMaxWidth = typeof gifW === 'number' ? gifW : 400;
     gifFps = typeof gifF === 'number' ? gifF : 5;
-    console.log('GIF settings - requested:', gifRecordRequested, 'maxWidth:', gifMaxWidth, 'fps:', gifFps);
+    
+    // Dynamic GIF max width based on recording width
+    const recordingWidth = width;
+    if (recordingWidth < 500) {
+      gifMaxWidth = 400;
+    } else if (recordingWidth <= 1000) {
+      gifMaxWidth = 600;
+    } else {
+      gifMaxWidth = 1000;
+    }
+    console.log('GIF settings - requested:', gifRecordRequested, 'recording width:', recordingWidth, 'dynamic maxWidth:', gifMaxWidth, 'fps:', gifFps);
 
     let dpr = devicePixelRatio || 1;
     const screenLogicalW = width;

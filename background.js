@@ -34,24 +34,27 @@ let timerInterval = null;
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === 'START_RECORDING_REQUEST') {
-    startCapture(message.tabId, message.showNotch, message.showFrame, message.recordMP4, message.recordWebM, message.bgStyle, 'recording', message.recordGif, message.gifMaxWidth, message.gifFps);
-    isRecording = true;
-    recordingTabId = message.tabId;
+    const success = await startCapture(message.tabId, message.showNotch, message.showFrame, message.recordMP4, message.recordWebM, message.bgStyle, 'recording', message.recordGif, message.gifMaxWidth, message.gifFps);
     
-    // Start Icon Timer
-    recordingStartTime = Date.now();
-    chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
-    chrome.action.setBadgeText({ text: '0:00' });
-    
-    // Disable popup so clicking icon fires onClicked
-    chrome.action.setPopup({ popup: '' });
+    if (success) {
+      isRecording = true;
+      recordingTabId = message.tabId;
+      
+      // Start Icon Timer
+      recordingStartTime = Date.now();
+      chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+      chrome.action.setBadgeText({ text: '0:00' });
+      
+      // Disable popup so clicking icon fires onClicked
+      chrome.action.setPopup({ popup: '' });
 
-    timerInterval = setInterval(() => {
-      const diff = Math.floor((Date.now() - recordingStartTime) / 1000);
-      const mins = Math.floor(diff / 60);
-      const secs = (diff % 60).toString().padStart(2, '0');
-      chrome.action.setBadgeText({ text: `${mins}:${secs}` });
-    }, 1000);
+      timerInterval = setInterval(() => {
+        const diff = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const mins = Math.floor(diff / 60);
+        const secs = (diff % 60).toString().padStart(2, '0');
+        chrome.action.setBadgeText({ text: `${mins}:${secs}` });
+      }, 1000);
+    }
 
   } else if (message.type === 'TAKE_SCREENSHOT_REQUEST') {
     startCapture(message.tabId, message.showNotch, message.showFrame, false, false, message.bgStyle, 'screenshot');
@@ -136,25 +139,29 @@ function injectLinkEnforcer(tabId) {
 async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4 = true, recordWebM = true, bgStyle = 'transparent', mode = 'recording', recordGif = true, gifMaxWidth = 400, gifFps = 5) {
   try {
     // 1. Get tab info/dimensions via scripting
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      func: () => {
-        return {
-          width: window.innerWidth,
-          height: window.innerHeight,
-          devicePixelRatio: window.devicePixelRatio
-        };
-      }
-    });
+    let dimensions;
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        func: () => {
+          return {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            devicePixelRatio: window.devicePixelRatio
+          };
+        }
+      });
+      dimensions = results[0].result;
+      console.log('Detected dimensions:', dimensions);
+    } catch (scriptErr) {
+      console.error('Cannot access this page:', scriptErr);
+      showProtectedPageError();
+      return false;
+    }
     
-    const dimensions = results[0].result;
-    console.log('Detected dimensions:', dimensions);
-    
-    // 3. Get Media Stream ID OR Screenshot
-    // Use captureVisibleTab for screenshots
+    // 2. Get Media Stream ID OR Screenshot
     if (mode === 'screenshot') {
       try {
-        // Get the windowId from the tab
         let windowId = chrome.windows.WINDOW_ID_CURRENT;
         try {
           const tab = await chrome.tabs.get(tabId);
@@ -168,7 +175,6 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
         const screenshotUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
         console.log('Screenshot captured, setting up offscreen document');
         
-        // Setup offscreen document for processing
         const existingContexts = await chrome.runtime.getContexts({
           contextTypes: ['OFFSCREEN_DOCUMENT']
         });
@@ -179,7 +185,6 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
         
         await setupOffscreenDocument('offscreen.html');
         
-        // Send screenshot to offscreen document for processing
         setTimeout(() => {
           chrome.runtime.sendMessage({
             target: 'offscreen',
@@ -195,17 +200,27 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
             }
           });
         }, 100);
+        return true;
       } catch (captureErr) {
         console.error('Screenshot capture failed:', captureErr);
+        showProtectedPageError();
+        return false;
       }
-      return;
     }
 
-    const streamId = await chrome.tabCapture.getMediaStreamId({
-      targetTabId: tabId
-    });
+    // 3. For recording mode, get stream ID
+    let streamId;
+    try {
+      streamId = await chrome.tabCapture.getMediaStreamId({
+        targetTabId: tabId
+      });
+    } catch (captureErr) {
+      console.error('Cannot capture this tab:', captureErr);
+      showProtectedPageError();
+      return false;
+    }
 
-    // 4. Setup Offscreen Doc (Only needed for recording now)
+    // 4. Setup Offscreen Doc
     const existingContexts = await chrome.runtime.getContexts({
       contextTypes: ['OFFSCREEN_DOCUMENT']
     });
@@ -217,7 +232,6 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
     await setupOffscreenDocument('offscreen.html');
 
     // 5. Send start message to offscreen
-    // Small buffer to ensure message listener is fully bound if just created
     setTimeout(() => {
       chrome.runtime.sendMessage({
         target: 'offscreen',
@@ -239,15 +253,27 @@ async function startCapture(tabId, showNotch = true, showFrame = true, recordMP4
         }
       });
       
-      // Inject script to force links to open in same tab
       if (mode === 'recording') {
         injectLinkEnforcer(tabId);
       }
       
     }, 500);
 
+    return true;
+
   } catch (err) {
     console.error('Error starting capture:', err);
-    isRecording = false; // Reset state on error
+    showProtectedPageError();
+    return false;
   }
+}
+
+function showProtectedPageError() {
+  chrome.action.setBadgeText({ text: '!' });
+  chrome.action.setBadgeBackgroundColor({ color: '#FF6B6B' });
+  
+  // Clear badge after 3 seconds
+  setTimeout(() => {
+    chrome.action.setBadgeText({ text: '' });
+  }, 3000);
 }

@@ -33,17 +33,21 @@ body {
   justify-content: space-between;
 }
 
-.fever-logo-header {
+.header-powered {
   display: flex;
   align-items: center;
-  color: #ffffff;
-  opacity: 0.95;
+}
+
+.powered-badge-header {
+  height: 14px;
+  opacity: 0.9;
   transition: opacity 0.3s;
 }
 
-.fever-logo-header:hover {
+.powered-badge-header:hover {
   opacity: 1;
 }
+
 
 .title {
   font-size: 16px;
@@ -336,27 +340,23 @@ input:checked + .slider:before {
   font-size: 11px;
   margin-top: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   color: rgba(255, 255, 255, 0.6);
 }
 
-.footer-left {
+.footer-credits {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
-.fever-logo-link {
-  display: flex;
-  align-items: center;
-  color: #ffffff;
-  opacity: 0.9;
-  transition: opacity 0.3s;
-}
-
-.fever-logo-link:hover {
-  opacity: 1;
+.team-link {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
 }
 
 .separator {
@@ -379,7 +379,7 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   transition: color 0.3s;
 }
@@ -391,6 +391,7 @@ input:checked + .slider:before {
 .author-link svg {
   opacity: 0.8;
 }
+
 
 /* Error Banner */
 .error-banner {

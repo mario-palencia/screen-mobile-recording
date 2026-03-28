@@ -30,24 +30,14 @@ body {
 .header-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
-.header-powered {
-  display: flex;
-  align-items: center;
-}
 
-.powered-badge-header {
-  height: 14px;
-  opacity: 0.9;
-  transition: opacity 0.3s;
+.title-link {
+  text-decoration: none;
+  color: inherit;
 }
-
-.powered-badge-header:hover {
-  opacity: 1;
-}
-
 
 .title {
   font-size: 16px;
@@ -57,6 +47,7 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  margin: 0;
 }
 
 .title-icon {
@@ -342,7 +333,7 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: rgba(255, 255, 255, 0.6);
 }
 
@@ -354,14 +345,8 @@ input:checked + .slider:before {
   flex-wrap: wrap;
 }
 
-.team-link {
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 600;
-}
-
 .separator {
   opacity: 0.5;
-  color: rgba(255, 255, 255, 0.6);
 }
 
 .hiring-link {
@@ -390,6 +375,22 @@ input:checked + .slider:before {
 
 .author-link svg {
   opacity: 0.8;
+}
+
+.footer-powered {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.powered-badge {
+  height: 12px;
+  opacity: 0.85;
+  transition: opacity 0.3s;
+}
+
+.powered-badge:hover {
+  opacity: 1;
 }
 
 
